@@ -1,84 +1,161 @@
 <x-app-layout>
 
-<div class="p-8">
+<div class="p-8 space-y-8">
 
-<h1 class="text-3xl font-bold mb-6">Gestión de Pacientes</h1>
+    {{-- CABECERA --}}
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-@if(session('success'))
-<div class="bg-green-100 text-green-700 p-4 rounded-lg mb-6">
-    {{ session('success') }}
-</div>
-@endif
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">
+                Gestión de Pacientes
+            </h1>
 
-<div class="flex flex-col md:flex-row gap-4 justify-between mb-6">
+            <p class="text-gray-500 mt-2">
+                Administración general de pacientes registrados
+            </p>
+        </div>
 
-<form method="GET" action="{{ route('pacientes.index') }}">
-    <input type="text" name="buscar"
-    value="{{ $buscar }}"
-    placeholder="Buscar paciente..."
-    class="border rounded-lg px-4 py-2">
-</form>
+        <a href="{{ route('pacientes.create') }}"
+        class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow">
+            Nuevo Paciente
+        </a>
 
-<a href="{{ route('pacientes.create') }}"
-class="bg-green-600 text-white px-5 py-3 rounded-lg">
-Nuevo Paciente
-</a>
+    </div>
 
-</div>
+    {{-- ALERTA --}}
+    @if(session('success'))
+    <div class="bg-green-100 border border-green-200 text-green-700 px-5 py-4 rounded-xl">
+        {{ session('success') }}
+    </div>
+    @endif
 
-<div class="bg-white shadow rounded-2xl overflow-hidden">
+    {{-- FILTRO --}}
+    <div class="bg-white shadow rounded-2xl p-6">
 
-<table class="w-full">
+        <form method="GET"
+        action="{{ route('pacientes.index') }}"
+        class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-<tr class="bg-gray-100 text-left">
-<th class="p-4">Nombre</th>
-<th>Documento</th>
-<th>Teléfono</th>
-<th>Acciones</th>
-</tr>
+            <input type="text"
+            name="buscar"
+            value="{{ $buscar }}"
+            placeholder="Buscar paciente..."
+            class="border rounded-xl px-4 py-3">
 
-@foreach($pacientes as $paciente)
-<tr class="border-t">
+            <button
+            class="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl px-6 py-3">
+                Buscar
+            </button>
 
-<td class="p-4">
-{{ $paciente->nombres }} {{ $paciente->apellidos }}
-</td>
+            <a href="{{ route('pacientes.index') }}"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl px-6 py-3 text-center">
+                Limpiar
+            </a>
 
-<td>{{ $paciente->documento }}</td>
+        </form>
 
-<td>{{ $paciente->telefono }}</td>
+    </div>
 
-<td class="space-x-3">
+    {{-- TABLA --}}
+    <div class="bg-white shadow rounded-2xl overflow-hidden">
 
-<a href="{{ route('pacientes.edit',$paciente) }}"
-class="text-blue-600 font-semibold">
-Editar
-</a>
+        <div class="p-6 border-b">
+            <h2 class="text-xl font-bold text-gray-800">
+                Listado de Pacientes
+            </h2>
+        </div>
 
-<form action="{{ route('pacientes.destroy',$paciente) }}"
-method="POST" class="inline">
+        <div class="overflow-x-auto">
 
-@csrf
-@method('DELETE')
+            <table class="w-full">
 
-<button class="text-red-600 font-semibold">
-Eliminar
-</button>
+                <thead class="bg-gray-100 text-gray-700">
+                    <tr>
+                        <th class="p-4 text-left">Paciente</th>
+                        <th class="text-left">Documento</th>
+                        <th class="text-left">Teléfono</th>
+                        <th class="text-left">Acciones</th>
+                    </tr>
+                </thead>
 
-</form>
+                <tbody>
 
-</td>
+                @forelse($pacientes as $paciente)
 
-</tr>
-@endforeach
+                <tr class="border-t hover:bg-gray-50">
 
-</table>
+                    <td class="p-4">
+                        <div class="font-semibold text-gray-800">
+                            {{ $paciente->nombres }} {{ $paciente->apellidos }}
+                        </div>
+                    </td>
 
-</div>
+                    <td>{{ $paciente->documento }}</td>
 
-<div class="mt-6">
-{{ $pacientes->links() }}
-</div>
+                    <td>{{ $paciente->telefono }}</td>
+
+                    <td class="p-4">
+
+                        <div class="flex flex-wrap gap-2">
+
+                            <a href="{{ route('pacientes.edit', $paciente->id) }}"
+                            class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                Editar
+                            </a>
+
+                            <a href="{{ route('pacientes.odontograma', $paciente->id) }}"
+                            class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                Odontograma
+                            </a>
+
+                            <a href="{{ route('pacientes.historia', $paciente->id) }}"
+                            class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                Ficha Clínica
+                            </a>
+
+                            <form action="{{ route('pacientes.destroy',$paciente->id) }}"
+                            method="POST"
+                            class="inline"
+                            onsubmit="return confirm('¿Eliminar paciente?')">
+
+                                @csrf
+                                @method('DELETE')
+
+                                <button
+                                class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                    Eliminar
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                @empty
+
+                <tr>
+                    <td colspan="4" class="p-8 text-center text-gray-500">
+                        No hay pacientes registrados.
+                    </td>
+                </tr>
+
+                @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    {{-- PAGINACION --}}
+    <div>
+        {{ $pacientes->links() }}
+    </div>
 
 </div>
 

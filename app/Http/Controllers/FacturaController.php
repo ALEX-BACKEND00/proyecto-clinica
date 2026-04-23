@@ -2,27 +2,50 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use App\Models\Factura;
 use App\Models\Paciente;
 use Illuminate\Http\Request;
 
 class FacturaController extends Controller
 {
-    public function index()
-    {
-        $facturas = Factura::with('paciente')
-            ->latest()
-            ->paginate(10);
+    public function index(Request $request)
+{
+    $user = Auth::user();
 
-        return view('facturas.index', compact('facturas'));
+    if ($user->role === 'admin') {
+
+        $query = Factura::with('paciente');
+
+    } else {
+
+        $query = Factura::with('paciente')
+            ->whereHas('paciente', function ($q) use ($user) {
+                $q->where('email', $user->email);
+            });
+
     }
 
-    public function create()
-    {
-        $pacientes = Paciente::orderBy('nombres')->get();
+    $facturas = $query
+        ->orderBy('id', 'desc')
+        ->paginate(10);
 
-        return view('facturas.create', compact('pacientes'));
-    }
+    return view('facturas.index', compact(
+        'facturas'
+    ));
+}
+
+    public function create(Request $request)
+{
+    $pacientes = Paciente::orderBy('nombres')->get();
+
+    $paciente_id = $request->paciente;
+
+    return view('facturas.create', compact(
+        'pacientes',
+        'paciente_id'
+    ));
+}
 
     public function store(Request $request)
     {

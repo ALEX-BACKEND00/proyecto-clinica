@@ -1,33 +1,69 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth;
 use App\Models\Cita;
 use App\Models\Paciente;
 use Illuminate\Http\Request;
 
 class CitaController extends Controller
 {
-public function index(Request $request)
-{
-    $fecha = $request->fecha;
+    public function index(Request $request)
+    {
+        $fecha = $request->fecha;
+        $user = Auth::user();
 
-    $citas = Cita::with('paciente')
-        ->when($fecha, function ($query) use ($fecha) {
+        if ($user->role === 'admin') {
+
+            $query = Cita::with('paciente');
+
+        } else {
+
+            $query = Cita::with('paciente')
+                ->whereHas('paciente', function ($q) use ($user) {
+                    $q->where('email', $user->email);
+                });
+        }
+
+        if ($fecha) {
             $query->whereDate('fecha', $fecha);
-        })
-        ->orderBy('fecha')
-        ->orderBy('hora')
-        ->paginate(10);
+        }
 
-    return view('citas.index', compact('citas', 'fecha'));
-}
+        $citas = $query
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora', 'desc')
+            ->paginate(10);
 
-    public function create()
+        $puedeCrearCita = true;
+
+        if ($user->role !== 'admin') {
+
+            $puedeCrearCita = !Cita::whereHas('paciente', function ($q) use ($user) {
+                $q->where('email', $user->email);
+            })
+            ->whereIn('estado', ['pendiente', 'confirmada'])
+            ->exists();
+        }
+
+        return view('citas.index', compact(
+            'citas',
+            'fecha',
+            'puedeCrearCita'
+        ));
+    }
+
+    public function create(Request $request)
     {
         $pacientes = Paciente::orderBy('nombres')->get();
 
-        return view('citas.create', compact('pacientes'));
+        $paciente_id = $request->paciente;
+        $fecha = $request->fecha ?? date('Y-m-d');
+
+        return view('citas.create', compact(
+            'pacientes',
+            'paciente_id',
+            'fecha'
+        ));
     }
 
     public function store(Request $request)
@@ -65,5 +101,49 @@ public function index(Request $request)
 
         return redirect()->route('citas.index')
             ->with('success', 'Cita eliminada');
+    }
+
+    public function completar(Cita $cita)
+    {
+        $cita->update([
+            'estado' => 'completada'
+        ]);
+
+        return redirect(
+            '/historias/create?paciente=' .
+            $cita->paciente_id .
+            '&fecha=' .
+            $cita->fecha
+        );
+    }
+
+    public function api()
+    {
+        return Cita::with('paciente')
+            ->get()
+            ->map(function ($cita) {
+                return [
+                    'id' => $cita->id,
+                    'title' => $cita->paciente->nombres . ' ' . $cita->paciente->apellidos,
+                    'start' => $cita->fecha . 'T' . $cita->hora,
+                    'extendedProps' => [
+                        'estado' => $cita->estado
+                    ]
+                ];
+            });
+    }
+
+    public function mover(Request $request)
+    {
+        $cita = Cita::findOrFail($request->id);
+
+        $cita->update([
+            'fecha' => date('Y-m-d', strtotime($request->start)),
+            'hora'  => date('H:i:s', strtotime($request->start)),
+        ]);
+
+        return response()->json([
+            'ok' => true
+        ]);
     }
 }

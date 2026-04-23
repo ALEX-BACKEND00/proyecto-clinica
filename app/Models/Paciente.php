@@ -2,10 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\HistoriaClinica;
+use App\Models\Odontograma;
+use App\Models\Factura;
+use App\Models\Cita;
 use Illuminate\Database\Eloquent\Model;
 
 class Paciente extends Model
 {
+    public function historias()
+{
+    return $this->hasMany(HistoriaClinica::class);
+}
+    public function odontogramas()
+{
+    return $this->hasMany(Odontograma::class);
+}
     public function facturas()
 {
     return $this->hasMany(Factura::class);

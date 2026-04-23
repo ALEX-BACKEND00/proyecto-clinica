@@ -1,113 +1,216 @@
 <x-app-layout>
 
-<div class="p-8">
+    <div class="p-8 space-y-8">
 
-<h1 class="text-3xl font-bold mb-6">Agenda de Citas</h1>
+        {{-- CABECERA --}}
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-<form method="GET" class="mb-6 flex gap-3">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">
+                    {{ auth()->user()->role === 'admin' ? 'Agenda de Citas' : 'Mis Citas' }}
+                </h1>
 
-<input type="date" name="fecha"
-value="{{ $fecha }}"
-class="border rounded-lg px-4 py-2">
+                <p class="text-gray-500 mt-2">
+{{ auth()->user()->role === 'admin'
+? 'Gestión general de citas odontológicas'
+: 'Consulta y seguimiento de tus citas odontológicas' }}
+</p>
+            </div>
 
-<button class="bg-gray-800 text-white px-4 py-2 rounded-lg">
-Filtrar
-</button>
-
-<a href="{{ route('citas.index') }}"
-class="bg-gray-300 px-4 py-2 rounded-lg">
-Limpiar
-</a>
-
-</form>
-
-@if(session('success'))
-<div class="bg-green-100 text-green-700 p-4 rounded-lg mb-6">
-{{ session('success') }}
-</div>
-@endif
+            @if(auth()->user()->role === 'admin' || $puedeCrearCita)
 
 <a href="{{ route('citas.create') }}"
-class="bg-cyan-600 text-white px-5 py-3 rounded-lg">
-Nueva Cita
+class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-xl shadow">
+    Nueva Cita
 </a>
 
-<div class="bg-white shadow rounded-2xl mt-6 overflow-hidden">
+@endif
 
-<table class="w-full">
+        </div>
 
-<tr class="bg-gray-100">
-<th class="p-4 text-left">Paciente</th>
-<th>Fecha</th>
-<th>Hora</th>
-<th>Estado</th>
-<th>Acciones</th>
-</tr>
+        {{-- ALERTA --}}
+        @if (session('success'))
+            <div class="bg-green-100 border border-green-200 text-green-700 px-5 py-4 rounded-xl">
+                {{ session('success') }}
+            </div>
+        @endif
 
-@foreach($citas as $cita)
+        {{-- FILTRO --}}
+        <div class="bg-white shadow rounded-2xl p-6">
 
-<tr class="border-t">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <input type="date" name="fecha" value="{{ $fecha }}" class="border rounded-xl px-4 py-3">
+
+                <button class="bg-gray-800 hover:bg-black text-white rounded-xl px-6 py-3">
+
+                    Filtrar
+
+                </button>
+
+                <a href="{{ route('citas.index') }}"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl px-6 py-3 text-center">
+
+                    Limpiar
+
+                </a>
+
+            </form>
+
+        </div>
+
+        {{-- TABLA --}}
+        <div class="bg-white shadow rounded-2xl overflow-hidden">
+
+            <div class="p-6 border-b">
+
+                <h2 class="text-xl font-bold text-gray-800">
+{{ auth()->user()->role === 'admin'
+? 'Listado de Citas'
+: 'Mis Próximas Citas' }}
+</h2>
+
+            </div>
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full">
+
+                    <thead class="bg-gray-100 text-gray-700">
+
+                        <tr>
+                            <th class="p-4 text-left">
+{{ auth()->user()->role === 'admin' ? 'Paciente' : 'Consulta' }}
+</th>
+                            <th class="text-left">Fecha</th>
+                            <th class="text-left">Hora</th>
+                            <th class="text-left">Estado</th>
+                            @if(auth()->user()->role === 'admin')
+<th class="text-left">Acciones</th>
+@endif
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @forelse($citas as $cita)
+                            <tr class="border-t hover:bg-gray-50">
+
+                                <td class="p-4 font-semibold text-gray-800">
+
+@if(auth()->user()->role === 'admin')
+
+    {{ $cita->paciente->nombres }}
+    {{ $cita->paciente->apellidos }}
+
+@else
+
+    Cita Odontológica
+
+@endif
+
+</td>
+
+                                <td>
+                                    {{ $cita->fecha }}
+                                </td>
+
+                                <td>
+                                    {{ $cita->hora }}
+                                </td>
+
+                                <td>
+
+                                    @if ($cita->estado == 'pendiente')
+                                        <span
+                                            class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+                                            Pendiente
+                                        </span>
+                                    @elseif($cita->estado == 'confirmada')
+                                        <span
+                                            class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                                            Confirmada
+                                        </span>
+                                    @elseif($cita->estado == 'completada')
+                                        <span
+                                            class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                                            Completada
+                                        </span>
+                                    @else
+                                        <span
+                                            class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">
+                                            Cancelada
+                                        </span>
+                                    @endif
+
+                                </td>
+
+                                @if(auth()->user()->role === 'admin')
 
 <td class="p-4">
-{{ $cita->paciente->nombres }} {{ $cita->paciente->apellidos }}
-</td>
 
-<td>{{ $cita->fecha }}</td>
-<td>{{ $cita->hora }}</td>
+    <div class="flex flex-wrap gap-2">
 
-<td>
+        <a href="{{ route('citas.edit', $cita) }}"
+        class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
+            Editar
+        </a>
 
-@if($cita->estado == 'pendiente')
-<span class="text-yellow-600 font-semibold">Pendiente</span>
-@endif
+        <a href="/pacientes/{{ $cita->paciente_id }}/historia"
+        class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold">
+            Historia
+        </a>
 
-@if($cita->estado == 'confirmada')
-<span class="text-blue-600 font-semibold">Confirmada</span>
-@endif
+        <form action="{{ route('citas.destroy', $cita) }}"
+        method="POST"
+        onsubmit="return confirm('¿Eliminar cita?')">
 
-@if($cita->estado == 'completada')
-<span class="text-green-600 font-semibold">Completada</span>
-@endif
+            @csrf
+            @method('DELETE')
 
-@if($cita->estado == 'cancelada')
-<span class="text-red-600 font-semibold">Cancelada</span>
-@endif
+            <button
+            class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                Eliminar
+            </button>
 
-</td>
+        </form>
 
-<td>
-
-<a href="{{ route('citas.edit',$cita) }}"
-class="text-blue-600 font-semibold">
-Editar
-</a>
-
-<form action="{{ route('citas.destroy',$cita) }}"
-method="POST" class="inline">
-
-@csrf
-@method('DELETE')
-
-<button class="text-red-600 ml-3">
-Eliminar
-</button>
-
-</form>
+    </div>
 
 </td>
 
-</tr>
+@endif
 
-@endforeach
+                            </tr>
 
-</table>
+                        @empty
 
-</div>
+                            <tr>
 
-<div class="mt-6">
-{{ $citas->links() }}
-</div>
+                                <td colspan="{{ auth()->user()->role === 'admin' ? 5 : 4 }}"
+class="p-8 text-center text-gray-500">
 
-</div>
+    No hay citas registradas.
+
+</td>
+
+                            </tr>
+                        @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+        {{-- PAGINACION --}}
+        <div>
+            {{ $citas->links() }}
+        </div>
+
+    </div>
 
 </x-app-layout>

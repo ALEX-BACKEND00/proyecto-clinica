@@ -12,13 +12,17 @@ class="bg-white shadow rounded-2xl p-8 space-y-6">
 <div>
 <label>Paciente</label>
 
-<select name="paciente_id"
-class="w-full border rounded-lg px-4 py-2">
+<select name="paciente_id" class="w-full border rounded-lg px-4 py-2">
 
 @foreach($pacientes as $paciente)
-<option value="{{ $paciente->id }}">
+
+<option value="{{ $paciente->id }}"
+{{ ($paciente_id == $paciente->id) ? 'selected' : '' }}>
+
 {{ $paciente->nombres }} {{ $paciente->apellidos }}
+
 </option>
+
 @endforeach
 
 </select>
