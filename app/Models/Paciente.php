@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Paciente extends Model
 {
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
     public function historias()
 {
     return $this->hasMany(HistoriaClinica::class);
@@ -27,6 +31,7 @@ class Paciente extends Model
     return $this->hasMany(Cita::class);
 }
     protected $fillable = [
+        'user_id',
         'nombres',
         'apellidos',
         'documento',
@@ -34,5 +39,6 @@ class Paciente extends Model
         'email',
         'direccion',
         'fecha_nacimiento'
+        
     ];
 }

@@ -9,76 +9,111 @@ use Illuminate\Http\Request;
 class CitaController extends Controller
 {
     public function index(Request $request)
-    {
-        $fecha = $request->fecha;
-        $user = Auth::user();
+{
+    $fecha = $request->fecha;
+    $user = Auth::user();
 
-        if ($user->role === 'admin') {
+    if ($user->role === 'admin') {
 
-            $query = Cita::with('paciente');
+        $query = Cita::with('paciente');
 
-        } else {
+    } else {
 
-            $query = Cita::with('paciente')
-                ->whereHas('paciente', function ($q) use ($user) {
-                    $q->where('email', $user->email);
-                });
+        $paciente = $user->paciente;
+
+        if (!$paciente) {
+            return redirect()->route('dashboard')
+                ->with('error', 'No tienes paciente asociado.');
         }
 
-        if ($fecha) {
-            $query->whereDate('fecha', $fecha);
-        }
+        $query = Cita::with('paciente')
+            ->where('paciente_id', $paciente->id);
+    }
 
-        $citas = $query
-            ->orderBy('fecha', 'desc')
-            ->orderBy('hora', 'desc')
-            ->paginate(10);
+    if ($fecha) {
+        $query->whereDate('fecha', $fecha);
+    }
 
-        $puedeCrearCita = true;
+    $citas = $query
+        ->orderBy('fecha', 'desc')
+        ->orderBy('hora', 'desc')
+        ->paginate(10);
 
-        if ($user->role !== 'admin') {
+    $puedeCrearCita = true;
 
-            $puedeCrearCita = !Cita::whereHas('paciente', function ($q) use ($user) {
-                $q->where('email', $user->email);
-            })
+    if ($user->role === 'paciente') {
+
+        $puedeCrearCita = !Cita::where('paciente_id', $paciente->id)
             ->whereIn('estado', ['pendiente', 'confirmada'])
             ->exists();
+    }
+
+    return view('citas.index', compact(
+        'citas',
+        'fecha',
+        'puedeCrearCita'
+    ));
+}
+
+    public function create()
+{
+    $user = Auth::user();
+
+    if ($user->role === 'admin') {
+
+        $pacientes = Paciente::orderBy('nombres')->get();
+        $paciente_id = null;
+
+    } else {
+
+        $paciente = $user->paciente;
+
+        if (!$paciente) {
+            return redirect()->route('dashboard')
+                ->with('error', 'No tienes paciente asociado.');
         }
 
-        return view('citas.index', compact(
-            'citas',
-            'fecha',
-            'puedeCrearCita'
-        ));
+        $pacientes = collect([$paciente]);
+        $paciente_id = $paciente->id;
     }
 
-    public function create(Request $request)
-    {
-        $pacientes = Paciente::orderBy('nombres')->get();
+    $fecha = now()->format('Y-m-d');
 
-        $paciente_id = $request->paciente;
-        $fecha = $request->fecha ?? date('Y-m-d');
+    return view('citas.create', compact(
+        'pacientes',
+        'paciente_id',
+        'fecha'
+    ));
+}
+public function estado(Request $request, Cita $cita)
+{
+    $request->validate([
+        'estado' => 'required|in:confirmada,cancelada'
+    ]);
 
-        return view('citas.create', compact(
-            'pacientes',
-            'paciente_id',
-            'fecha'
-        ));
-    }
+    $cita->update([
+        'estado' => $request->estado
+    ]);
+
+    return redirect()->route('dashboard')
+        ->with('success', 'Estado de cita actualizado.');
+}
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'paciente_id' => 'required',
-            'fecha' => 'required',
-            'hora' => 'required',
+{
+    $user = Auth::user();
+
+    if ($user->role === 'paciente') {
+        $request->merge([
+            'paciente_id' => $user->paciente->id
         ]);
-
-        Cita::create($request->all());
-
-        return redirect()->route('citas.index')
-            ->with('success', 'Cita agendada correctamente');
     }
+
+    Cita::create($request->all());
+
+    return redirect()->route('citas.index')
+        ->with('success', 'Cita registrada correctamente');
+}
 
     public function edit(Cita $cita)
     {
@@ -108,6 +143,8 @@ class CitaController extends Controller
         $cita->update([
             'estado' => 'completada'
         ]);
+        
+        if ($cita->estado === 'cancelada') abort(403);
 
         return redirect(
             '/historias/create?paciente=' .

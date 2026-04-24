@@ -16,7 +16,7 @@
         </div>
 
         <a href="{{ route('pacientes.create') }}"
-        class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow">
+           class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow">
             Nuevo Paciente
         </a>
 
@@ -24,31 +24,31 @@
 
     {{-- ALERTA --}}
     @if(session('success'))
-    <div class="bg-green-100 border border-green-200 text-green-700 px-5 py-4 rounded-xl">
-        {{ session('success') }}
-    </div>
+        <div class="bg-green-100 border border-green-200 text-green-700 px-5 py-4 rounded-xl">
+            {{ session('success') }}
+        </div>
     @endif
 
     {{-- FILTRO --}}
     <div class="bg-white shadow rounded-2xl p-6">
 
         <form method="GET"
-        action="{{ route('pacientes.index') }}"
-        class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              action="{{ route('pacientes.index') }}"
+              class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             <input type="text"
-            name="buscar"
-            value="{{ $buscar }}"
-            placeholder="Buscar paciente..."
-            class="border rounded-xl px-4 py-3">
+                   name="buscar"
+                   value="{{ $buscar ?? '' }}"
+                   placeholder="Buscar por nombre, apellido o documento..."
+                   class="border rounded-xl px-4 py-3 w-full">
 
-            <button
-            class="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl px-6 py-3">
+            <button type="submit"
+                    class="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl px-6 py-3">
                 Buscar
             </button>
 
             <a href="{{ route('pacientes.index') }}"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl px-6 py-3 text-center">
+               class="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl px-6 py-3 text-center">
                 Limpiar
             </a>
 
@@ -57,7 +57,7 @@
     </div>
 
     {{-- TABLA --}}
-    <div class="bg-white shadow rounded-2xl overflow-hidden">
+    <div class="bg-white shadow rounded-2xl overflow-hidden relative">
 
         <div class="p-6 border-b">
             <h2 class="text-xl font-bold text-gray-800">
@@ -82,65 +82,73 @@
 
                 @forelse($pacientes as $paciente)
 
-                <tr class="border-t hover:bg-gray-50">
+                    <tr class="border-t hover:bg-gray-50">
 
-                    <td class="p-4">
-                        <div class="font-semibold text-gray-800">
-                            {{ $paciente->nombres }} {{ $paciente->apellidos }}
-                        </div>
-                    </td>
+                        <td class="p-4">
+                            <div class="font-semibold text-gray-800">
+                                {{ $paciente->nombres }} {{ $paciente->apellidos }}
+                            </div>
 
-                    <td>{{ $paciente->documento }}</td>
+                            <div class="text-sm text-gray-500">
+                                {{ $paciente->email }}
+                            </div>
+                        </td>
 
-                    <td>{{ $paciente->telefono }}</td>
+                        <td>
+                            {{ $paciente->documento }}
+                        </td>
 
-                    <td class="p-4">
+                        <td>
+                            {{ $paciente->telefono }}
+                        </td>
 
-                        <div class="flex flex-wrap gap-2">
+                        <td class="p-4">
 
-                            <a href="{{ route('pacientes.edit', $paciente->id) }}"
-                            class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
-                                Editar
-                            </a>
+                            <div class="flex flex-wrap gap-2">
 
-                            <a href="{{ route('pacientes.odontograma', $paciente->id) }}"
-                            class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg text-sm font-semibold">
-                                Odontograma
-                            </a>
+                                <a href="{{ route('pacientes.edit', $paciente->id) }}"
+                                   class="inline-block bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                    Editar
+                                </a>
 
-                            <a href="{{ route('pacientes.historia', $paciente->id) }}"
-                            class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold">
-                                Ficha Clínica
-                            </a>
+                                <a href="{{ route('pacientes.odontograma', $paciente->id) }}"
+                                   class="inline-block bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-lg text-sm font-semibold relative z-50">
+                                    Odontograma
+                                </a>
 
-                            <form action="{{ route('pacientes.destroy',$paciente->id) }}"
-                            method="POST"
-                            class="inline"
-                            onsubmit="return confirm('¿Eliminar paciente?')">
+                                <a href="{{ route('pacientes.historia', $paciente->id) }}"
+                                   class="inline-block bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                    Ficha Clínica
+                                </a>
 
-                                @csrf
-                                @method('DELETE')
+                                <form action="{{ route('pacientes.destroy', $paciente->id) }}"
+                                      method="POST"
+                                      class="inline-block"
+                                      onsubmit="return confirm('¿Eliminar paciente?')">
 
-                                <button
-                                class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
-                                    Eliminar
-                                </button>
+                                    @csrf
+                                    @method('DELETE')
 
-                            </form>
+                                    <button type="submit"
+                                            class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
+                                        Eliminar
+                                    </button>
 
-                        </div>
+                                </form>
 
-                    </td>
+                            </div>
 
-                </tr>
+                        </td>
+
+                    </tr>
 
                 @empty
 
-                <tr>
-                    <td colspan="4" class="p-8 text-center text-gray-500">
-                        No hay pacientes registrados.
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="4" class="p-8 text-center text-gray-500">
+                            No hay pacientes registrados.
+                        </td>
+                    </tr>
 
                 @endforelse
 
@@ -152,7 +160,7 @@
 
     </div>
 
-    {{-- PAGINACION --}}
+    {{-- PAGINACIÓN --}}
     <div>
         {{ $pacientes->links() }}
     </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
 use Illuminate\Http\Request;
@@ -83,13 +84,26 @@ public function paciente(Paciente $paciente)
     ));
 }
     public function index()
-    {
-        $historias = HistoriaClinica::with('paciente')
-            ->latest()
-            ->paginate(10);
+{
+    $user = Auth::user();
 
-        return view('historias.index', compact('historias'));
+    if ($user->role !== 'paciente') {
+        return redirect()->route('dashboard');
     }
+
+    $paciente = $user->paciente;
+
+    if (!$paciente) {
+        return redirect()->route('dashboard')
+            ->with('error', 'No tienes paciente vinculado.');
+    }
+
+    $historias = HistoriaClinica::where('paciente_id', $paciente->id)
+        ->latest()
+        ->paginate(10);
+
+    return view('historias.index', compact('historias', 'paciente'));
+}
 
 public function create(Request $request)
 {

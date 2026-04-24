@@ -160,24 +160,51 @@
 
             <td class="space-x-2">
 
-                <form method="POST" action="/citas/{{ $cita->id }}/estado" class="inline">
-                    @csrf
-                    <input type="hidden" name="estado" value="confirmada">
-                    <button class="text-blue-600">Confirmar</button>
-                </form>
+@if($cita->estado === 'pendiente')
 
-                <form method="POST" action="/citas/{{ $cita->id }}/completar" class="inline">
-                    @csrf
-                    <button class="text-green-600">Completar</button>
-                </form>
+<form method="POST"
+action="{{ route('citas.estado', $cita) }}"
+class="inline">
+    @csrf
+    <input type="hidden" name="estado" value="confirmada">
+    <button class="text-blue-600 hover:underline">
+        Confirmar
+    </button>
+</form>
 
-                <form method="POST" action="/citas/{{ $cita->id }}/estado" class="inline">
-                    @csrf
-                    <input type="hidden" name="estado" value="cancelada">
-                    <button class="text-red-600">Cancelar</button>
-                </form>
+@endif
 
-            </td>
+
+@if(in_array($cita->estado, ['pendiente', 'confirmada']))
+
+<form method="POST"
+action="{{ route('citas.completar', $cita) }}"
+class="inline">
+    @csrf
+    <button class="text-green-600 hover:underline">
+        Completar
+    </button>
+</form>
+
+@endif
+
+
+@if($cita->estado !== 'cancelada' && $cita->estado !== 'completada')
+
+<form method="POST"
+action="{{ route('citas.estado', $cita) }}"
+class="inline"
+onsubmit="return confirm('¿Cancelar esta cita?')">
+    @csrf
+    <input type="hidden" name="estado" value="cancelada">
+    <button class="text-red-600 hover:underline">
+        Cancelar
+    </button>
+</form>
+
+@endif
+
+</td>
 
         </tr>
 
@@ -310,7 +337,7 @@
 
             </a>
 
-            <a href="#"
+            <a href="{{ route('historias.index') }}"
             class="bg-white shadow rounded-2xl p-6 hover:shadow-lg transition">
 
                 <h3 class="text-xl font-bold text-gray-800">
@@ -322,19 +349,20 @@
                 </p>
 
             </a>
-
-            <a href="#"
+            
+            <a href="{{ route('pacientes.odontograma', $paciente) }}"
             class="bg-white shadow rounded-2xl p-6 hover:shadow-lg transition">
 
                 <h3 class="text-xl font-bold text-gray-800">
                     Mi Odontograma
                 </h3>
-
+                
                 <p class="text-sm text-gray-500 mt-2">
                     Estado dental actualizado
                 </p>
 
             </a>
+            
 
             <a href="{{ route('facturas.index') }}"
             class="bg-white shadow rounded-2xl p-6 hover:shadow-lg transition">
@@ -364,6 +392,7 @@
         </div>
 
     </div>
+    
 
     {{-- PANEL INFERIOR --}}
     <div class="bg-white shadow rounded-2xl p-6">
