@@ -131,30 +131,30 @@
 
                     <div class="flex flex-wrap gap-2">
 
-                        <a href="{{ route('facturas.edit',$factura) }}"
-                        class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
+@if($factura->estado === 'pendiente')
+<a href="{{ route('facturas.edit',$factura) }}"
+class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
+    Editar
+</a>
+@endif
 
-                            Editar
+@if($factura->estado === 'pendiente')
+<form action="{{ route('facturas.destroy',$factura) }}"
+method="POST"
+onsubmit="return confirm('¿Eliminar factura?')">
 
-                        </a>
+    @csrf
+    @method('DELETE')
 
-                        <form action="{{ route('facturas.destroy',$factura) }}"
-                        method="POST"
-                        onsubmit="return confirm('¿Eliminar factura?')">
+    <button
+    class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
+        Eliminar
+    </button>
 
-                            @csrf
-                            @method('DELETE')
+</form>
+@endif
 
-                            <button
-                            class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
-
-                                Eliminar
-
-                            </button>
-
-                        </form>
-
-                    </div>
+</div>
 
                 </td>
 

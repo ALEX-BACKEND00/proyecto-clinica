@@ -61,30 +61,42 @@ class FacturaController extends Controller
     }
 
     public function edit(Factura $factura)
-    {
-        $pacientes = Paciente::orderBy('nombres')->get();
-
-        return view('facturas.edit', compact('factura', 'pacientes'));
+{
+    if ($factura->estado === 'pagada') {
+        return back()->with('error', 'Factura pagada no editable.');
     }
+
+    $pacientes = Paciente::orderBy('nombres')->get();
+
+    return view('facturas.edit', compact('factura', 'pacientes'));
+}
 
     public function update(Request $request, Factura $factura)
-    {
-        $request->validate([
-            'paciente_id' => 'required',
-            'total' => 'required|numeric|min:0',
-        ]);
-
-        $factura->update($request->all());
-
-        return redirect()->route('facturas.index')
-            ->with('success', 'Factura actualizada');
+{
+    if ($factura->estado === 'pagada') {
+        return back()->with('error', 'Factura pagada no editable.');
     }
+
+    $request->validate([
+        'paciente_id' => 'required',
+        'total' => 'required|numeric|min:0',
+    ]);
+
+    $factura->update($request->all());
+
+    return redirect()->route('facturas.index')
+        ->with('success', 'Factura actualizada');
+}
 
     public function destroy(Factura $factura)
-    {
-        $factura->delete();
-
-        return redirect()->route('facturas.index')
-            ->with('success', 'Factura eliminada');
+{
+    if ($factura->estado === 'pagada') {
+        return back()->with('error', 'Factura pagada no eliminable.');
     }
+
+    $factura->delete();
+
+    return redirect()->route('facturas.index')
+        ->with('success', 'Factura eliminada');
+}
 }

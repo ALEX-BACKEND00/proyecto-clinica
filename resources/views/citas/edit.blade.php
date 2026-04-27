@@ -43,13 +43,32 @@ class="w-full border rounded-lg px-4 py-2">
 <div>
 <label>Estado</label>
 
+@if($cita->estado === 'completada' && $cita->edicion_post_completada == 1)
+
+<input type="text"
+value="Completada"
+disabled
+class="w-full border rounded-lg px-4 py-2 bg-gray-100">
+
+<input type="hidden" name="estado" value="completada">
+
+@else
+
 <select name="estado"
 class="w-full border rounded-lg px-4 py-2">
+
 <option value="pendiente" {{ $cita->estado=='pendiente'?'selected':'' }}>Pendiente</option>
+
 <option value="confirmada" {{ $cita->estado=='confirmada'?'selected':'' }}>Confirmada</option>
+
 <option value="completada" {{ $cita->estado=='completada'?'selected':'' }}>Completada</option>
+
 <option value="cancelada" {{ $cita->estado=='cancelada'?'selected':'' }}>Cancelada</option>
+
 </select>
+
+@endif
+
 </div>
 
 <div>

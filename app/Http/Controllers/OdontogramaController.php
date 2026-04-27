@@ -59,8 +59,11 @@ class OdontogramaController extends Controller
             }
         });
 
-        return redirect()
-            ->route('pacientes.odontograma', $request->paciente_id)
-            ->with('success', 'Odontograma actualizado correctamente.');
+        return redirect(
+    '/historias/create?paciente=' .
+    $request->paciente_id .
+    '&fecha=' .
+    now()->format('Y-m-d')
+)->with('success', 'Odontograma actualizado correctamente.');
     }
 }

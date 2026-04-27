@@ -152,10 +152,10 @@ class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-xl shadow">
 
     <div class="flex flex-wrap gap-2">
         
-        @if(!($cita->estado === 'completada' && $cita->edicion_post_completada == 1))
+       @if(in_array($cita->estado, ['pendiente','confirmada']))
 <a href="{{ route('citas.edit', $cita) }}"
 class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
-    Editar
+Editar
 </a>
 @endif
 
@@ -164,19 +164,20 @@ class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
             Historia
         </a>
 
-        <form action="{{ route('citas.destroy', $cita) }}"
-        method="POST"
-        onsubmit="return confirm('¿Eliminar cita?')">
+        @if(in_array($cita->estado, ['pendiente','confirmada']))
+<form action="{{ route('citas.destroy', $cita) }}"
+method="POST"
+onsubmit="return confirm('¿Eliminar cita?')">
 
-            @csrf
-            @method('DELETE')
+@csrf
+@method('DELETE')
 
-            <button
-            class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
-                Eliminar
-            </button>
+<button class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
+Eliminar
+</button>
 
-        </form>
+</form>
+@endif
 
     </div>
 

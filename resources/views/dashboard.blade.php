@@ -444,55 +444,337 @@ new Chart(ctx, {
 });
 </script>
 
+{{-- SCRIPT DE CALENDARIO CON FULLCALENDAR --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-    var calendarEl = document.getElementById('calendario');
-
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-
-        initialView: 'timeGridWeek',
+    const calendarEl = document.getElementById('calendario');
+    
+    // Inicializar calendario
+    const calendar = new window.FullCalendar.Calendar(calendarEl, {
+        plugins: window.FullCalendarPlugins,
+        
+        // Vista inicial responsiva
+        initialView: window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek',
+        
+        // Configuración regional
         locale: 'es',
-        height: 750,
-        expandRows: true,
+        
+        // Alto automático
+        height: 'auto',
+        
+        // Configuración de horario
         slotMinTime: "07:00:00",
         slotMaxTime: "20:00:00",
         allDaySlot: false,
         nowIndicator: true,
+        
+        // Habilitar interacción
         editable: true,
-
+        selectable: true,
+        
+        // Toolbar personalizada
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'timeGridWeek,timeGridDay'
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
-
-        events: '/api/citas',
-
+        
+        // Cargar eventos desde API
+        events: {
+            url: '/api/citas',
+            method: 'GET',
+            failure: function() {
+                alert('Error al cargar citas');
+            }
+        },
+        
+        // Feedback al mover cita
         eventDrop: function(info) {
-
+            Swal.fire({
+                title: 'Actualizando...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
             fetch('/api/citas/mover', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 },
                 body: JSON.stringify({
                     id: info.event.id,
-                    start: info.event.start
+                    start: info.event.start,
+                    end: info.event.end
                 })
-            });
-
-        }
-
-    });
-
-    calendar.render();
-
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    Swal.fire('¡Éxito!', 'Cita reprogramada', 'success');
+                    actualizarTablaCitasHoy();
+                } else {
+                    info.revert();
+                    Swal.fire('Error', data.message || 'No se pudo reprogramar', 'error');
+                }
+            })
+            .catch(err => {
+    info.revert();  // ✅ Cambiar "revent" a "revert"
+    Swal.fire('Error', 'Error de conexión', 'error');
 });
+        },
+        
+        // Click en evento → Modal
+        eventClick: function(info) {
+            const cita = info.event.extendedProps;
+            const horaInicio = info.event.start.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+            const horaFin = info.event.end ? 
+                info.event.end.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'}) : '';
+            
+            Swal.fire({
+                title: `Cita: ${info.event.title}`,
+                html: `
+                    <div class="text-left space-y-3">
+                        <div class="border-b pb-2">
+                            <p><strong>📅 Fecha:</strong> ${info.event.start.toLocaleDateString('es-ES', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                            <p><strong>🕐 Hora:</strong> ${horaInicio} - ${horaFin || 'Sin hora fin'}</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <p><strong>🦷 Tipo:</strong> <span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${cita.color || '#6b7280'}">${cita.tipo || 'Consulta'}</span></p>
+                            <p><strong>📊 Estado:</strong> <span class="status-badge status-${cita.estado}">${cita.estado}</span></p>
+                        </div>
+                        ${cita.motivo ? `<div class="border-b pb-2"><p><strong>📝 Motivo:</strong> ${cita.motivo}</p></div>` : ''}
+                        ${cita.observaciones ? `<div><p><strong>📋 Observaciones:</strong> ${cita.observaciones}</p></div>` : ''}
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: cita.estado === 'pendiente' ? '✅ Confirmar' : 
+                                  cita.estado === 'confirmada' ? '✔️ Completar' : '✏️ Editar',
+                cancelButtonText: '✖️ Cerrar',
+                showDenyButton: cita.estado !== 'cancelada' && cita.estado !== 'completada',
+                denyButtonText: '🗑️ Cancelar Cita',
+                confirmButtonColor: cita.estado === 'pendiente' ? '#3b82f6' : 
+                                   cita.estado === 'confirmada' ? '#10b981' : '#f59e0b',
+                denyButtonColor: '#ef4444',
+                width: '600px',
+                preConfirm: () => {
+                    const nuevoEstado = cita.estado === 'pendiente' ? 'confirmada' : 
+                                       cita.estado === 'confirmada' ? 'completada' : null;
+                    if(nuevoEstado) {
+                        return fetch(`/api/citas/${info.event.id}/estado`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({estado: nuevoEstado})
+                        });
+                    }
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    calendar.refetchEvents();
+                    actualizarTablaCitasHoy();
+                } else if (result.isDenied) {
+                    Swal.fire({
+                        title: '¿Cancelar cita?',
+                        text: "Esta acción no se puede deshacer",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: 'Sí, cancelar',
+                        cancelButtonText: 'No'
+                    }).then(cancelResult => {
+                        if (cancelResult.isConfirmed) {
+                            fetch(`/api/citas/${info.event.id}/estado`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify({estado: 'cancelada'})
+                            }).then(() => {
+                                calendar.refetchEvents();
+                                actualizarTablaCitasHoy();
+                            });
+                        }
+                    });
+                }
+            });
+        },
+        
+        // Tooltip enrichido
+        eventMouseEnter: function(info) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'fc-tooltip';
+            tooltip.style.cssText = `
+                position: fixed;
+                z-index: 10000;
+                padding: 12px;
+                background: #1f2937;
+                color: white;
+                border-radius: 8px;
+                font-size: 13px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                pointer-events: none;
+                white-space: nowrap;
+                max-width: 300px;
+                white-space: normal;
+            `;
+            
+            const cita = info.event.extendedProps;
+            tooltip.innerHTML = `
+                <div class="font-bold text-base mb-2">${info.event.title}</div>
+                <div class="space-y-1">
+                    <div>📅 ${info.event.start.toLocaleDateString('es-ES', {weekday: 'short', day: 'numeric', month: 'short'})}</div>
+                    <div>🕐 ${info.event.start.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})} - ${info.event.end ? info.event.end.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}) : 'Sin fin'}</div>
+                    <div>🦷 ${cita.tipo || 'Consulta'}</div>
+                    <div>📊 <span class="status-badge status-${cita.estado}">${cita.estado}</span></div>
+                </div>
+            `;
+            
+            document.body.appendChild(tooltip);
+            
+            const rect = info.el.getBoundingClientRect();
+            tooltip.style.left = (rect.left + window.scrollX) + 'px';
+            tooltip.style.top = (rect.bottom + 5 + window.scrollY) + 'px';
+        },
+        
+        eventMouseLeave: function(info) {
+            const tooltip = document.querySelector('.fc-tooltip');
+            if(tooltip) tooltip.remove();
+        },
+        
+        // Evitar doble booking
+        eventAllow: function(dropInfo, draggedEvent) {
+    // Como no hay dentista, permitimos mover sin validación de conflictos
+    // Podrías validar por paciente si lo deseas:
+    const events = calendar.getEvents();
+    const pacienteId = draggedEvent.extendedProps.paciente_id;
+    const nuevaInicio = dropInfo.start;
+    const nuevaFin = dropInfo.end || new Date(nuevaInicio.getTime() + 60*60*1000);
+    
+    // Opcional: Evitar citas duplicadas del MISMO PACIENTE en el mismo horario
+    for(let ev of events) {
+        if(ev.id === draggedEvent.id) continue;
+        
+        if(ev.extendedProps.paciente_id === pacienteId) {
+            const evStart = ev.start;
+            const evEnd = ev.end || new Date(evStart.getTime() + 60*60*1000);
+            
+            if((nuevaInicio >= evStart && nuevaInicio < evEnd) ||
+               (nuevaFin > evStart && nuevaFin <= evEnd) ||
+               (nuevaInicio <= evStart && nuevaFin >= evEnd)) {
+                Swal.fire('Conflicto', 'Este paciente ya tiene una cita en ese horario', 'error');
+                return false;
+            }
+        }
+    }
+    return true;
+}
+    });
+    
+    calendar.render();
+    
+    // Hacer accesible desde global para actualizaciones externas
+    window.calendar = calendar;
+});
+
+// Función para actualizar tabla de citas de hoy
+function actualizarTablaCitasHoy() {
+    fetch('/api/citas/hoy')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector('tbody');
+            if(!tbody) return;
+            
+            tbody.innerHTML = data.map(cita => `
+                <tr class="border-t">
+                    <td class="p-4">
+                        ${cita.paciente.nombres} ${cita.paciente.apellidos}
+                    </td>
+                    <td>${cita.hora}</td>
+                    <td>
+                        <span class="status-badge status-${cita.estado}">${cita.estado}</span>
+                    </td>
+                    <td class="space-x-2">
+                        ${cita.estado === 'pendiente' ? `
+                            <form method="POST" action="/citas/${cita.id}/estado" class="inline">
+                                @csrf
+                                <input type="hidden" name="estado" value="confirmada">
+                                <button class="text-blue-600 hover:underline">Confirmar</button>
+                            </form>
+                        ` : ''}
+                        
+                        ${['pendiente', 'confirmada'].includes(cita.estado) ? `
+                            <form method="POST" action="/citas/${cita.id}/completar" class="inline">
+                                @csrf
+                                <button class="text-green-600 hover:underline">Completar</button>
+                            </form>
+                        ` : ''}
+                        
+                        ${!['cancelada', 'completada'].includes(cita.estado) ? `
+                            <form method="POST" action="/citas/${cita.id}/estado" class="inline" onsubmit="return confirm('¿Cancelar esta cita?')">
+                                @csrf
+                                <input type="hidden" name="estado" value="cancelada">
+                                <button class="text-red-600 hover:underline">Cancelar</button>
+                            </form>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(err => console.error('Error actualizando tabla:', err));
+}
+
+// Auto-refresco cada 30 segundos
+setInterval(actualizarTablaCitasHoy, 30000);
 </script>
 
 <style>
+    /* Tooltip */
+.fc-tooltip {
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Badges de estado */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.status-pendiente { background: #fef3c7; color: #92400e; }
+.status-confirmada { background: #dbeafe; color: #1e40af; }
+.status-completada { background: #d1fae5; color: #065f46; }
+.status-cancelada { background: #fee2e2; color: #991b1b; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    #calendario { min-height: 600px; }
+    .fc { font-size: 11px; }
+    .fc-daygrid-day-number { font-size: 10px; }
+    .fc-col-header-cell-cushion { font-size: 10px; }
+    .fc-timegrid-slot-label { font-size: 10px; }
+}
+
+/* Hover effects */
+.fc-event {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.fc-event:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Ajuste de colores de eventos por tipo */
+.fc-event.consulta { background-color: #3b82f6 !important; border-color: #2563eb !important; }
+.fc-event.limpieza { background-color: #10b981 !important; border-color: #059669 !important; }
+.fc-event.cirugia { background-color: #ef4444 !important; border-color: #dc2626 !important; }
+.fc-event.urgencia { background-color: #dc2626 !important; border-color: #b91c1c !important; }
+.fc-event.seguimiento { background-color: #8b5cf6 !important; border-color: #7c3aed !important; }
 #calendario{
     min-height:750px;
     font-size:14px;

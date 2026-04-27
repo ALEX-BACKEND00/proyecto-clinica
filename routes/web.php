@@ -76,6 +76,10 @@ Route::middleware('auth')->group(function () {
         [CitaController::class, 'api'])
         ->name('api.citas');
 
+Route::get('/api/citas/hoy',
+    [CitaController::class, 'hoy'])
+    ->name('api.citas.hoy');
+    
     Route::post('/api/citas/mover',
         [CitaController::class, 'mover'])
         ->name('api.citas.mover');

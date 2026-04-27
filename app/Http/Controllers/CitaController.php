@@ -124,40 +124,33 @@ public function estado(Request $request, Cita $cita)
 
     public function update(Request $request, Cita $cita)
 {
-    if ($cita->estado === 'completada' && $cita->edicion_post_completada == 1) {
-        return back()->with('error', 'La cita completada ya no puede editarse.');
+    if(in_array($cita->estado, ['completada','cancelada'])){
+        return back()->with('error','Esta cita ya no puede editarse.');
     }
-
-    $estadoAnterior = $cita->estado;
 
     $cita->update($request->all());
 
-    if ($estadoAnterior === 'completada') {
-        $cita->update([
-            'edicion_post_completada' => 1
-        ]);
-    }
-
-    if ($request->estado === 'completada' && $estadoAnterior !== 'completada') {
+    if($request->estado === 'completada'){
         return redirect(
-            '/historias/create?paciente=' .
-            $cita->paciente_id .
-            '&fecha=' .
-            $cita->fecha
+            '/pacientes/' . $cita->paciente_id . '/odontograma'
         );
     }
 
     return redirect()->route('citas.index')
-        ->with('success', 'Cita actualizada');
+        ->with('success','Cita actualizada');
 }
 
     public function destroy(Cita $cita)
-    {
-        $cita->delete();
-
-        return redirect()->route('citas.index')
-            ->with('success', 'Cita eliminada');
+{
+    if(in_array($cita->estado, ['completada','cancelada'])){
+        return back()->with('error','Esta cita no puede eliminarse.');
     }
+
+    $cita->delete();
+
+    return redirect()->route('citas.index')
+        ->with('success', 'Cita eliminada');
+}
 
     public function completar(Cita $cita)
     {
@@ -175,33 +168,81 @@ public function estado(Request $request, Cita $cita)
         );
     }
 
-    public function api()
+    /**
+     * Devuelve color hexadecimal según tipo de cita
+     */
+    private function getColorByTipo($tipo)
     {
-        return Cita::with('paciente')
-            ->get()
-            ->map(function ($cita) {
-                return [
-                    'id' => $cita->id,
-                    'title' => $cita->paciente->nombres . ' ' . $cita->paciente->apellidos,
-                    'start' => $cita->fecha . 'T' . $cita->hora,
-                    'extendedProps' => [
-                        'estado' => $cita->estado
-                    ]
-                ];
-            });
+        $colores = [
+            'consulta' => '#3b82f6',      // azul
+            'limpieza' => '#10b981',      // verde
+            'ortodoncia' => '#f59e0b',    // ámbar
+            'cirugia' => '#ef4444',       // rojo
+            'urgencia' => '#dc2626',      // rojo oscuro
+            'seguimiento' => '#8b5cf6',   // morado
+            'tratamiento' => '#06b6d4',   // cyan
+            'evaluacion' => '#6366f1',    // indigo
+        ];
+
+        return $colores[strtolower($tipo)] ?? '#6b7280'; // gris por defecto
     }
+public function hoy()
+{
+    $citas = Cita::with('paciente')
+        ->where('fecha', now()->format('Y-m-d'))
+        ->orderBy('hora', 'asc')
+        ->get();
+    
+    return response()->json($citas->map(function($cita) {
+        return [
+            'id' => $cita->id,
+            'paciente' => [
+                'nombres' => $cita->paciente->nombres,
+                'apellidos' => $cita->paciente->apellidos
+            ],
+            'hora' => $cita->hora,
+            'estado' => $cita->estado
+        ];
+    }));
+}
+    public function api()
+{
+    $citas = Cita::with('paciente')
+        ->where('fecha', '>=', now()->startOfMonth())
+        ->get();
+    
+    return response()->json($citas->map(function($cita) {
+        return [
+            'id' => $cita->id,
+            'title' => $cita->paciente ? ($cita->paciente->nombres . ' ' . $cita->paciente->apellidos) : 'Sin paciente',
+            'start' => $cita->fecha . 'T' . $cita->hora,
+            'end' => $cita->hora_fin ? $cita->fecha . 'T' . $cita->hora_fin : null,
+            'backgroundColor' => $this->getColorByTipo($cita->tipo),
+            'borderColor' => $this->getColorByTipo($cita->tipo),
+            'extendedProps' => [
+                'paciente' => $cita->paciente,
+                'paciente_id' => $cita->paciente_id,  // ← NUEVO
+                'tipo' => $cita->tipo,
+                'estado' => $cita->estado,
+                'motivo' => $cita->motivo,
+                'observaciones' => $cita->observaciones,
+                'color' => $this->getColorByTipo($cita->tipo)
+            ]
+        ];
+    }));
+}
 
     public function mover(Request $request)
-    {
-        $cita = Cita::findOrFail($request->id);
+{
+    $cita = Cita::findOrFail($request->id);
 
-        $cita->update([
-            'fecha' => date('Y-m-d', strtotime($request->start)),
-            'hora'  => date('H:i:s', strtotime($request->start)),
-        ]);
+    $cita->update([
+        'fecha' => date('Y-m-d', strtotime($request->start)),
+        'hora'  => date('H:i:s', strtotime($request->start)),
+    ]);
 
-        return response()->json([
-            'ok' => true
-        ]);
-    }
+    return response()->json([
+        'success' => true   // ✅ Cambiar 'ok' a 'success'
+    ]);
+}
 }
