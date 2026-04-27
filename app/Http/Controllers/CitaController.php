@@ -123,12 +123,33 @@ public function estado(Request $request, Cita $cita)
     }
 
     public function update(Request $request, Cita $cita)
-    {
-        $cita->update($request->all());
-
-        return redirect()->route('citas.index')
-            ->with('success', 'Cita actualizada');
+{
+    if ($cita->estado === 'completada' && $cita->edicion_post_completada == 1) {
+        return back()->with('error', 'La cita completada ya no puede editarse.');
     }
+
+    $estadoAnterior = $cita->estado;
+
+    $cita->update($request->all());
+
+    if ($estadoAnterior === 'completada') {
+        $cita->update([
+            'edicion_post_completada' => 1
+        ]);
+    }
+
+    if ($request->estado === 'completada' && $estadoAnterior !== 'completada') {
+        return redirect(
+            '/historias/create?paciente=' .
+            $cita->paciente_id .
+            '&fecha=' .
+            $cita->fecha
+        );
+    }
+
+    return redirect()->route('citas.index')
+        ->with('success', 'Cita actualizada');
+}
 
     public function destroy(Cita $cita)
     {

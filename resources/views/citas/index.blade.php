@@ -151,11 +151,13 @@ class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-xl shadow">
 <td class="p-4">
 
     <div class="flex flex-wrap gap-2">
-
-        <a href="{{ route('citas.edit', $cita) }}"
-        class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
-            Editar
-        </a>
+        
+        @if(!($cita->estado === 'completada' && $cita->edicion_post_completada == 1))
+<a href="{{ route('citas.edit', $cita) }}"
+class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
+    Editar
+</a>
+@endif
 
         <a href="/pacientes/{{ $cita->paciente_id }}/historia"
         class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold">

@@ -123,10 +123,10 @@ public function create(Request $request)
 {
     $historia = HistoriaClinica::create($request->all());
 
-    return redirect()->route(
-        'pacientes.historia',
+    return redirect(
+        '/facturas/create?paciente=' .
         $historia->paciente_id
-    )->with('success', 'Evolución clínica registrada correctamente');
+    )->with('success', 'Historia clínica registrada');
 }
 
     public function edit(HistoriaClinica $historia)
