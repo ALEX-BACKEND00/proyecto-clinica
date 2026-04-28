@@ -28,3 +28,4 @@ window.FullCalendarPlugins = [
     interactionPlugin,
     listPlugin
 ];
+
