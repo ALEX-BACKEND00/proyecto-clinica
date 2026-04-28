@@ -65,6 +65,7 @@ Route::middleware('auth')->group(function () {
     | CITAS
     |--------------------------------------------------------------------------
     */
+    Route::get('/api/citas/horarios-disponibles', [CitaController::class, 'horariosDisponibles']);
 
     Route::resource('citas', CitaController::class);
 

@@ -54,7 +54,49 @@ class CitaController extends Controller
         'puedeCrearCita'
     ));
 }
+public function horariosDisponibles(Request $request)
+{
+    $fecha = $request->fecha;
 
+    $dia = date('w', strtotime($fecha)); // 0 domingo
+
+    $horarios = [];
+
+    // Lunes a viernes
+    if($dia >= 1 && $dia <= 5){
+
+        $horarios = [
+            '08:00','08:30','09:00','09:30',
+            '10:00','10:30','11:00','11:30',
+            '14:00','14:30','15:00','15:30',
+            '16:00','16:30','17:00','17:30'
+        ];
+    }
+
+    // sábado
+    if($dia == 6){
+
+        $horarios = [
+            '08:00','08:30','09:00','09:30',
+            '10:00','10:30','11:00','11:30'
+        ];
+    }
+
+    // domingo cerrado
+    if($dia == 0){
+        return response()->json([]);
+    }
+
+    $ocupadas = Cita::whereDate('fecha', $fecha)
+        ->whereIn('estado', ['pendiente','confirmada'])
+        ->pluck('hora')
+        ->map(fn($h) => substr($h,0,5))
+        ->toArray();
+
+    $libres = array_values(array_diff($horarios, $ocupadas));
+
+    return response()->json($libres);
+}
     public function create()
 {
     $user = Auth::user();
@@ -206,11 +248,12 @@ public function hoy()
             return [
                 'id' => $cita->id,
                 'title' => $cita->paciente->nombres . ' ' . $cita->paciente->apellidos,
-                'start' => $cita->fecha,
+                'start' => $cita->fecha . 'T' . $cita->hora,  // ← FIX: concatenar fecha y hora
+                'allDay' => false,  // Asegurar que no es evento de día completo
                 'color' => $this->colorEstado($cita->estado),
-
                 'extendedProps' => [
                     'paciente_id' => $cita->paciente_id,
+                    'hora_original' => $cita->hora,
                     'estado' => $cita->estado,
                     'motivo' => $cita->motivo
                 ]
@@ -231,23 +274,29 @@ public function hoy()
 }
 
     public function mover(Request $request)
-{
-    $cita = Cita::findOrFail($request->id);
+    {
+        \Log::info('Mover cita request:', $request->all());
 
-    if(in_array($cita->estado,['completada','cancelada'])){
+        $request->validate([
+            'id' => 'required|exists:citas,id',
+            'fecha' => 'required|date',
+            'hora' => 'nullable|date_format:H:i:s'  // Formato 24h
+        ]);
+
+        $cita = Cita::findOrFail($request->id);
+
+        \Log::info('Cita antes de update:', ['fecha' => $cita->fecha, 'hora' => $cita->hora]);
+
+        $cita->update([
+            'fecha' => $request->fecha,
+            'hora'  => $request->hora ?: date('H:i:s', strtotime($request->fecha . ' 08:00:00')), // Si no hay hora, usa 8am
+        ]);
+
+        \Log::info('Cita después de update:', ['fecha' => $cita->fecha, 'hora' => $cita->hora]);
+
         return response()->json([
-            'success' => false,
-            'message' => 'No se puede mover esta cita.'
+            'success' => true,
+            'message' => 'Cita reprogramada correctamente'
         ]);
     }
-
-    $cita->update([
-        'fecha' => date('Y-m-d', strtotime($request->start)),
-        'hora'  => date('H:i:s', strtotime($request->start)),
-    ]);
-
-    return response()->json([
-        'success' => true
-    ]);
-}
 }

@@ -79,6 +79,9 @@ class DashboardController extends Controller
                 'ingresoMensual',
                 'meses',
                 'totales',
+                'ingresosMensuales',
+                'totales',
+                'ingresosMensuales',
                 'citasHoyList'
             ));
         }

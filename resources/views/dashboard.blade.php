@@ -259,7 +259,30 @@
                     Ingresos Mensuales
                 </h2>
 
-                <canvas id="graficoIngresos"></canvas>
+                @if($ingresosMensuales->isNotEmpty())
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mes</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingresos</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($ingresosMensuales as $ingreso)
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ \Carbon\Carbon::create()->month($ingreso->mes)->format('F') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${{ number_format($ingreso->total, 2) }}</td>
+                        </tr>
+                        @endforeach
+                        <tr class="bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">Total Anual</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${{ number_format($ingresosMensuales->sum('total'), 2) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                @else
+                <p class="text-gray-500">No hay ingresos registrados este año.</p>
+                @endif
 
             </div>
 
@@ -421,167 +444,13 @@
 
     @if(auth()->user()->role === 'admin')
 
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <script>
-            const ctx = document.getElementById('graficoIngresos');
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: @json($meses),
-                    datasets: [{
-                        label: 'Ingresos',
-                        data: @json($totales),
-                        backgroundColor: '#06b6d4',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        </script>
+        {{-- SWEETALERT2 --}}
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
         {{-- SCRIPT DE CALENDARIO CON FULLCALENDAR --}}
-        <script>
-document.addEventListener('DOMContentLoaded', function () {
-
-    const calendarEl = document.getElementById('calendario');
-
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-
-        plugins: window.FullCalendarPlugins,
-
-        locale: 'es',
-
-        initialView: 'dayGridMonth',
-
-        height: 'auto',
-
-        editable: true,
-        selectable: true,
-
-        displayEventTime: true,
-displayEventEnd: false,
-
-eventTimeFormat: {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-},
-
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth'
-        },
-
-        buttonText: {
-            today: 'Hoy',
-            month: 'Mes'
-        },
-
-        events: '/api/citas',
-
-        eventContent: function(arg) {
-
-    let estado = arg.event.extendedProps.estado || '';
-    let tipo   = arg.event.extendedProps.tipo || '';
-
-    let hora = '';
-
-    if(arg.event.start){
-        hora = arg.event.start.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-    }
-
-    return {
-        html: `
-        <div style="font-size:11px; line-height:1.2; padding:2px;">
-            
-            <div style="font-weight:bold; color:#fff;">
-                ${hora}
-            </div>
-
-            <div style="font-weight:bold;">
-                ${arg.event.title}
-            </div>
-
-            <div style="font-size:10px;">
-                ${estado}
-            </div>
-
-            <div style="font-size:10px;">
-                ${tipo}
-            </div>
-
-        </div>
-        `
-    };
-},
-
-        eventDrop: function(info){
-
-            fetch('/api/citas/mover', {
-                method:'POST',
-                headers:{
-                    'Content-Type':'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    id: info.event.id,
-                    start: info.event.startStr
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-
-                if(data.success){
-
-                    Swal.fire('Éxito','Cita reprogramada','success');
-
-                }else{
-
-                    info.revert();
-                    Swal.fire('Error','No se pudo mover','error');
-                }
-
-            })
-            .catch(() => {
-
-                info.revert();
-                Swal.fire('Error','Error de conexión','error');
-
-            });
-        },
-
-        eventClick: function(info){
-
-            let cita = info.event.extendedProps;
-
-            Swal.fire({
-                title: info.event.title,
-                html: `
-                    <p><b>Hora:</b> ${info.event.start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
-                    <p><b>Estado:</b> ${cita.estado}</p>
-                `,
-                confirmButtonText:'Cerrar'
-            });
-        }
-
-    });
-
-    calendar.render();
-
-});
-</script>
+        @vite('resources/js/agenda.js')
 
         <style>
             /* Tooltip */
