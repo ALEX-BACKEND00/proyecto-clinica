@@ -70,6 +70,7 @@ class DashboardController extends Controller
                 ->get();
 
             return view('dashboard', compact(
+            
                 'citasHoy',
                 'pacientesHoy',
                 'facturasHoy',
@@ -95,30 +96,50 @@ class DashboardController extends Controller
 $user = Auth::user();
 $paciente = $user->paciente;
 
-$misCitas = collect();
 $proximaCita = null;
-$misFacturasPendientes = 0;
+$diasSinCita = null;
+$alertaDias = 'ok';
+$facturasPendientes = 0;
 
 if ($paciente) {
 
-    $misCitas = Cita::where('paciente_id', $paciente->id)->get();
-
+    // Próxima cita
     $proximaCita = Cita::where('paciente_id', $paciente->id)
         ->whereDate('fecha', '>=', today())
         ->orderBy('fecha')
         ->orderBy('hora')
         ->first();
 
-    $misFacturasPendientes = Factura::where('paciente_id', $paciente->id)
+    // Última cita válida (completada)
+    $ultimaCita = Cita::where('paciente_id', $paciente->id)
+        ->where('estado', 'completada')
+        ->orderByDesc('fecha')
+        ->first();
+
+    if ($ultimaCita) {
+       $diasSinCita = \Carbon\Carbon::parse($ultimaCita->fecha)
+    ->startOfDay()
+    ->diffInDays(now()->startOfDay());
+
+        if ($diasSinCita > 180) {
+            $alertaDias = 'danger';
+        } elseif ($diasSinCita > 90) {
+            $alertaDias = 'warning';
+        }
+    }
+
+    // Facturas
+    $facturasPendientes = Factura::where('paciente_id', $paciente->id)
         ->where('estado', 'pendiente')
         ->count();
 }
 
 return view('dashboard', compact(
     'paciente',
-    'misCitas',
     'proximaCita',
-    'misFacturasPendientes'
+    'diasSinCita',
+    'alertaDias',
+    'facturasPendientes'
 ));
-    }
+}
 }

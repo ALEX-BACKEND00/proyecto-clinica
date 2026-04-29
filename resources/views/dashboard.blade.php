@@ -304,28 +304,82 @@
                 {{-- TARJETAS RESUMEN --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    <div class="bg-cyan-600 text-white rounded-2xl shadow p-6">
-                        <p class="text-sm opacity-90">Próxima Cita</p>
-                        <h2 class="text-2xl font-bold mt-2">
-                            Sin cita programada
-                        </h2>
-                    </div>
+    {{-- 🔹 PRÓXIMA CITA --}}
+    <div class="bg-cyan-600 text-white rounded-2xl shadow p-6">
+        <p class="text-sm opacity-90">Próxima Cita</p>
 
-                    <div class="bg-blue-600 text-white rounded-2xl shadow p-6">
-                        <p class="text-sm opacity-90">Mis Citas</p>
-                        <h2 class="text-3xl font-bold mt-2">
-                            0
-                        </h2>
-                    </div>
+        @if($proximaCita)
+            <h2 class="text-xl font-bold mt-2">
+                {{ \Carbon\Carbon::parse($proximaCita->fecha)->format('d/m/Y') }}
+                - {{ $proximaCita->hora ? substr($proximaCita->hora,0,5) : 'Sin hora' }}
+            </h2>
 
-                    <div class="bg-green-600 text-white rounded-2xl shadow p-6">
-                        <p class="text-sm opacity-90">Facturas Pendientes</p>
-                        <h2 class="text-3xl font-bold mt-2">
-                            0
-                        </h2>
-                    </div>
+            <p class="text-sm mt-2 opacity-80">
+                {{ ucfirst($proximaCita->estado) }}
+            </p>
+        @else
+            <h2 class="text-lg font-bold mt-2">
+                Sin cita programada
+            </h2>
 
-                </div>
+            <a href="{{ route('citas.create') }}"
+               class="text-sm mt-2 underline block">
+                Agendar cita ahora
+            </a>
+        @endif
+    </div>
+
+
+    {{-- 🔹 TIEMPO SIN ATENCIÓN --}}
+    <div class="rounded-2xl shadow p-6 text-white
+        @if($alertaDias == 'danger') bg-red-600
+        @elseif($alertaDias == 'warning') bg-yellow-500
+        @else bg-blue-600
+        @endif">
+
+        <p class="text-sm opacity-90">Tiempo sin atención</p>
+
+        @if($diasSinCita !== null)
+            <h2 class="text-3xl font-bold mt-2">
+                {{ $diasSinCita }} días
+            </h2>
+
+            @if($alertaDias == 'danger')
+                <p class="text-sm mt-2">⚠️ Más de 6 meses sin atención</p>
+            @elseif($alertaDias == 'warning')
+                <p class="text-sm mt-2">⏳ Más de 3 meses sin revisión</p>
+            @else
+                <p class="text-sm mt-2">Control al día</p>
+            @endif
+
+        @else
+            <h2 class="text-lg font-bold mt-2">
+                Sin historial
+            </h2>
+        @endif
+    </div>
+
+
+    {{-- 🔹 FACTURAS --}}
+    <div class="bg-green-600 text-white rounded-2xl shadow p-6">
+        <p class="text-sm opacity-90">Facturas Pendientes</p>
+
+        <h2 class="text-3xl font-bold mt-2">
+            {{ $facturasPendientes }}
+        </h2>
+
+        @if($facturasPendientes > 0)
+            <p class="text-sm mt-2">
+                Tienes pagos pendientes
+            </p>
+        @else
+            <p class="text-sm mt-2">
+                Todo al día ✅
+            </p>
+        @endif
+    </div>
+
+</div>
 
                 {{-- MODULOS --}}
                 <div>
