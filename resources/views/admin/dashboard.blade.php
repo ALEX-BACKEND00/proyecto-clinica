@@ -1,90 +1,58 @@
+@php
+    // Detectamos el rol una sola vez para limpiar el código inferior
+    $isAdmin = auth()->user()->rol === 'admin';
+    
+    // Configuramos las clases maestras según el rol
+    $bodyClass = $isAdmin ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800';
+    $headerClass = $isAdmin ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
+@endphp
+
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrador</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>{{ config('app.name', 'CMR Clínica') }}</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
 
-<body class="bg-gray-950 text-white min-h-screen">
+<body class="antialiased {{ $bodyClass }} transition-colors duration-500">
 
-<div class="flex">
+    <div class="min-h-screen">
+        
+        {{-- Navegación: Pasamos el rol para que el componente también cambie internamente --}}
+        @include('layouts.navigation', ['isAdmin' => $isAdmin])
 
-    <!-- Sidebar -->
-    <aside class="w-72 min-h-screen bg-slate-900 border-r border-slate-800 p-6">
+        {{-- Encabezado Dinámico --}}
+        @isset($header)
+            <header class="{{ $headerClass }} border-b shadow-sm transition-colors duration-500">
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    {{ $header }}
+                </div>
+            </header>
+        @endisset
 
-        <h1 class="text-2xl font-bold text-cyan-400 mb-10">
-            Clínica Dental
-        </h1>
-
-        <nav class="space-y-3">
-
-            <a href="#" class="block px-4 py-3 rounded-lg bg-slate-800 hover:bg-cyan-600 transition">
-                Dashboard
-            </a>
-
-            <a href="#" class="block px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                Pacientes
-            </a>
-
-            <a href="#" class="block px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                Citas
-            </a>
-
-            <a href="#" class="block px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                Historiales
-            </a>
-
-            <a href="#" class="block px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                Reportes
-            </a>
-
-        </nav>
-
-    </aside>
-
-    <!-- Main -->
-    <main class="flex-1 p-8">
-
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-3xl font-bold">Panel Administrativo</h2>
-
-            <span class="bg-cyan-500 text-black px-4 py-2 rounded-lg font-semibold">
-                Admin
-            </span>
-        </div>
-
-        <!-- Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-            <div class="bg-slate-900 p-6 rounded-2xl shadow">
-                <p class="text-gray-400">Pacientes</p>
-                <h3 class="text-3xl font-bold mt-2">124</h3>
+        {{-- Contenido Principal --}}
+        <main class="py-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {{ $slot }}
             </div>
+        </main>
 
-            <div class="bg-slate-900 p-6 rounded-2xl shadow">
-                <p class="text-gray-400">Citas Hoy</p>
-                <h3 class="text-3xl font-bold mt-2">18</h3>
-            </div>
-
-            <div class="bg-slate-900 p-6 rounded-2xl shadow">
-                <p class="text-gray-400">Ingresos</p>
-                <h3 class="text-3xl font-bold mt-2">$850</h3>
-            </div>
-
-            <div class="bg-slate-900 p-6 rounded-2xl shadow">
-                <p class="text-gray-400">Pendientes</p>
-                <h3 class="text-3xl font-bold mt-2">6</h3>
-            </div>
-
-        </div>
-
-    </main>
-
-</div>
+    </div>
 
 </body>
 </html>
