@@ -1,193 +1,156 @@
+@php
+    $isAdmin = auth()->user()->role === 'admin';
+@endphp
+
 <x-app-layout>
 
-<div class="p-8 space-y-8">
+<div class="space-y-8">
 
-{{-- CABECERA --}}
-<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    {{-- CABECERA --}}
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-    <div>
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-black {{ $isAdmin ? 'text-white' : 'text-slate-900' }} tracking-tight">
+                @if($isAdmin)
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400">Facturación</span>
+                @else
+                    Mis <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">Facturas</span>
+                @endif
+            </h1>
 
-        <h1 class="text-3xl font-bold text-gray-800">
-            {{ auth()->user()->role === 'admin' ? 'Facturación' : 'Mis Facturas' }}
-        </h1>
+            <p class="text-slate-400 mt-1 font-medium text-sm">
+                {{ $isAdmin ? 'Gestión financiera de la clínica' : 'Consulta tus pagos y facturas odontológicas' }}
+            </p>
+        </div>
 
-        <p class="text-gray-500 mt-2">
-            {{ auth()->user()->role === 'admin'
-            ? 'Gestión financiera de la clínica'
-            : 'Consulta tus pagos y facturas odontológicas' }}
-        </p>
+        @if($isAdmin)
+            <a href="{{ route('facturas.create') }}"
+               class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white font-bold text-sm px-6 py-3.5 rounded-xl transition-all duration-300 shadow-lg shadow-teal-500/20 hover:shadow-cyan-500/30 hover:-translate-y-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Nueva Factura
+            </a>
+        @endif
 
     </div>
 
-    @if(auth()->user()->role === 'admin')
-
-    <a href="{{ route('facturas.create') }}"
-    class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow">
-
-        Nueva Factura
-
-    </a>
-
+    {{-- ALERTA --}}
+    @if(session('success'))
+        <div class="{{ $isAdmin ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700' }} border px-5 py-4 rounded-xl flex items-center gap-3 backdrop-blur-sm animate-fade-in">
+            <svg class="w-5 h-5 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-sm font-semibold">{{ session('success') }}</span>
+        </div>
     @endif
 
-</div>
+    {{-- TABLA --}}
+    <div class="{{ $isAdmin ? 'bg-slate-800 border-slate-700/80 shadow-2xl' : 'bg-white border-slate-200 shadow-sm' }} border rounded-2xl overflow-hidden relative">
 
-{{-- ALERTA --}}
-@if(session('success'))
+        <div class="p-6 border-b {{ $isAdmin ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-white' }}">
+            <h2 class="text-xl font-bold {{ $isAdmin ? 'text-white' : 'text-slate-800' }} tracking-tight">
+                {{ $isAdmin ? 'Listado de Facturas' : 'Mis Facturas Pendientes y Pagadas' }}
+            </h2>
+        </div>
 
-<div class="bg-green-100 border border-green-200 text-green-700 px-5 py-4 rounded-xl">
-    {{ session('success') }}
-</div>
+        <div class="overflow-x-auto">
 
-@endif
+            <table class="w-full text-left border-collapse">
 
-{{-- TABLA --}}
-<div class="bg-white shadow rounded-2xl overflow-hidden">
+                <thead class="{{ $isAdmin ? 'bg-slate-900/50 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200' }} text-xs font-black uppercase tracking-widest border-b">
+                    <tr>
+                        <th class="p-4">
+                            {{ $isAdmin ? 'Paciente' : 'Servicio' }}
+                        </th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        @if($isAdmin)
+                            <th class="p-4 text-center">Acciones</th>
+                        @endif
+                    </tr>
+                </thead>
 
-    <div class="p-6 border-b">
+                <tbody class="divide-y {{ $isAdmin ? 'divide-slate-700/60 text-slate-300' : 'divide-slate-100 text-slate-700' }} text-sm">
 
-        <h2 class="text-xl font-bold text-gray-800">
-            {{ auth()->user()->role === 'admin'
-            ? 'Listado de Facturas'
-            : 'Mis Facturas Pendientes y Pagadas' }}
-        </h2>
+                    @forelse($facturas as $factura)
+                        <tr class="hover:bg-slate-700/20 transition-colors duration-150">
 
-    </div>
+                            <td class="p-4 font-bold {{ $isAdmin ? 'text-white' : 'text-slate-900' }}">
+                                @if($isAdmin)
+                                    {{ $factura->paciente->nombres }}
+                                    {{ $factura->paciente->apellidos }}
+                                @else
+                                    Atención Odontológica
+                                @endif
+                            </td>
 
-    <div class="overflow-x-auto">
+                            <td class="font-mono font-semibold {{ $isAdmin ? 'text-emerald-400' : 'text-emerald-600' }}">
+                                $ {{ number_format($factura->total, 2) }}
+                            </td>
 
-        <table class="w-full">
+                            <td>
+                                @if($factura->estado == 'pagada')
+                                    <span class="inline-flex items-center gap-1 font-bold text-xs uppercase tracking-wider border {{ $isAdmin ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700' }} px-3 py-1.5 rounded-lg">
+                                        Pagada
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 font-bold text-xs uppercase tracking-wider border {{ $isAdmin ? 'bg-amber-950/40 border-amber-800/60 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700' }} px-3 py-1.5 rounded-lg">
+                                        Pendiente
+                                    </span>
+                                @endif
+                            </td>
 
-            <thead class="bg-gray-100 text-gray-700">
+                            <td class="font-mono text-slate-400">
+                                {{ $factura->created_at->format('Y-m-d') }}
+                            </td>
 
-                <tr>
+                            @if($isAdmin)
+                                <td class="p-4">
+                                    <div class="flex flex-wrap items-center justify-center gap-2">
+                                        @if($factura->estado === 'pendiente')
+                                            <a href="{{ route('facturas.edit', $factura) }}"
+                                               class="inline-flex items-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200">
+                                                Editar
+                                            </a>
+                                        @endif
 
-                    <th class="p-4 text-left">
-                        {{ auth()->user()->role === 'admin' ? 'Paciente' : 'Servicio' }}
-                    </th>
+                                        @if($factura->estado === 'pendiente')
+                                            <form action="{{ route('facturas.destroy', $factura) }}" method="POST" onsubmit="return confirm('¿Desea eliminar esta factura?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                        class="inline-flex items-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200">
+                                                    Eliminar
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            @endif
 
-                    <th class="text-left">Total</th>
-                    <th class="text-left">Estado</th>
-                    <th class="text-left">Fecha</th>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ $isAdmin ? 5 : 4 }}" class="p-12 text-center text-slate-500 font-medium">
+                                No hay facturas registradas.
+                            </td>
+                        </tr>
+                    @endforelse
 
-                    @if(auth()->user()->role === 'admin')
-                    <th class="text-left">Acciones</th>
-                    @endif
+                </tbody>
 
-                </tr>
+            </table>
 
-            </thead>
-
-            <tbody>
-
-            @forelse($facturas as $factura)
-
-            <tr class="border-t hover:bg-gray-50">
-
-                <td class="p-4 font-semibold text-gray-800">
-
-                    @if(auth()->user()->role === 'admin')
-
-                        {{ $factura->paciente->nombres }}
-                        {{ $factura->paciente->apellidos }}
-
-                    @else
-
-                        Atención Odontológica
-
-                    @endif
-
-                </td>
-
-                <td>
-                    $ {{ number_format($factura->total,2) }}
-                </td>
-
-                <td>
-
-                    @if($factura->estado == 'pagada')
-
-                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-                        Pagada
-                    </span>
-
-                    @else
-
-                    <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
-                        Pendiente
-                    </span>
-
-                    @endif
-
-                </td>
-
-                <td>
-                    {{ $factura->created_at->format('Y-m-d') }}
-                </td>
-
-                @if(auth()->user()->role === 'admin')
-
-                <td class="p-4">
-
-                    <div class="flex flex-wrap gap-2">
-
-@if($factura->estado === 'pendiente')
-<a href="{{ route('facturas.edit',$factura) }}"
-class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-semibold">
-    Editar
-</a>
-@endif
-
-@if($factura->estado === 'pendiente')
-<form action="{{ route('facturas.destroy',$factura) }}"
-method="POST"
-onsubmit="return confirm('¿Eliminar factura?')">
-
-    @csrf
-    @method('DELETE')
-
-    <button
-    class="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-semibold">
-        Eliminar
-    </button>
-
-</form>
-@endif
-
-</div>
-
-                </td>
-
-                @endif
-
-            </tr>
-
-            @empty
-
-            <tr>
-
-                <td colspan="{{ auth()->user()->role === 'admin' ? 5 : 4 }}"
-                class="p-8 text-center text-gray-500">
-
-                    No hay facturas registradas.
-
-                </td>
-
-            </tr>
-
-            @endforelse
-
-            </tbody>
-
-        </table>
+        </div>
 
     </div>
 
-</div>
-
-<div>
-{{ $facturas->links() }}
-</div>
+    {{-- PAGINACIÓN --}}
+    <div class="mt-4">
+        {{ $facturas->links() }}
+    </div>
 
 </div>
 

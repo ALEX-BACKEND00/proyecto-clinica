@@ -32,44 +32,121 @@ class PacienteController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'required|string|max:100',
-            'documento' => 'required|string|max:50|unique:pacientes,documento',
-            'telefono' => 'required|string|max:30',
-            'email' => 'nullable|email|max:150|unique:users,email',
-            'direccion' => 'nullable|string|max:255',
-            'fecha_nacimiento' => 'nullable|date',
+{
+    $request->merge([
+
+        'nombres' => preg_replace('/\s+/', ' ', trim($request->nombres)),
+
+        'apellidos' => preg_replace('/\s+/', ' ', trim($request->apellidos)),
+
+        'documento' => preg_replace('/[^0-9]/', '', $request->documento),
+
+        'telefono' => preg_replace('/[^0-9]/', '', $request->telefono),
+
+        'email' => $request->email
+            ? strtolower(trim($request->email))
+            : null,
+
+        'direccion' => $request->direccion
+            ? preg_replace('/\s+/', ' ', trim($request->direccion))
+            : null,
+    ]);
+
+
+    $data = $request->validate([
+
+        'nombres' => [
+            'required',
+            'string',
+            'min:2',
+            'max:60',
+            'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\'-]+$/u'
+        ],
+
+        'apellidos' => [
+            'required',
+            'string',
+            'min:2',
+            'max:60',
+            'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\'-]+$/u'
+        ],
+
+        'documento' => [
+            'required',
+            'digits_between:6,11',
+            'unique:pacientes,documento'
+        ],
+
+        'telefono' => [
+            'required',
+            'digits:10',
+            'regex:/^3[0-9]{9}$/'
+        ],
+
+        'email' => [
+            'nullable',
+            'email',
+            'max:120',
+            'unique:users,email'
+        ],
+
+        'direccion' => [
+            'required',
+            'string',
+            'min:5',
+            'max:150'
+        ],
+
+        'fecha_nacimiento' => [
+            'required',
+            'date',
+            'before_or_equal:today',
+            'after:' . now()->subYears(120)->format('Y-m-d')
+        ],
+
+    ], [
+
+        'documento.unique' => 'Ya existe un paciente con este documento.',
+        'documento.digits_between' => 'El documento debe tener entre 6 y 11 dígitos.',
+
+        'telefono.digits' => 'El celular debe tener 10 dígitos.',
+        'telefono.regex' => 'Ingrese un celular colombiano válido.',
+
+        'fecha_nacimiento.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
+
+        'nombres.regex' => 'Los nombres solo pueden contener letras.',
+        'apellidos.regex' => 'Los apellidos solo pueden contener letras.',
+
+    ]);
+
+
+    DB::transaction(function () use ($data) {
+
+        $user = User::create([
+            'name' => $data['nombres'] . ' ' . $data['apellidos'],
+            'email' => $data['email'] ?? $data['documento'] . '@paciente.local',
+            'password' => Hash::make($data['documento']),
+            'role' => 'paciente',
         ]);
 
-        DB::transaction(function () use ($data) {
 
-            // 1. Crear usuario del sistema
-            $user = User::create([
-                'name' => $data['nombres'] . ' ' . $data['apellidos'],
-                'email' => $data['email'] ?? $data['documento'] . '@paciente.local',
-                'password' => Hash::make($data['documento']), // temporal controlado
-                'role' => 'paciente',
-            ]);
+        Paciente::create([
+            'user_id' => $user->id,
+            'nombres' => $data['nombres'],
+            'apellidos' => $data['apellidos'],
+            'documento' => $data['documento'],
+            'telefono' => $data['telefono'],
+            'email' => $data['email'] ?? null,
+            'direccion' => $data['direccion'],
+            'fecha_nacimiento' => $data['fecha_nacimiento'],
+        ]);
+    });
 
-            // 2. Crear paciente vinculado
-            Paciente::create([
-                'user_id' => $user->id,
-                'nombres' => $data['nombres'],
-                'apellidos' => $data['apellidos'],
-                'documento' => $data['documento'],
-                'telefono' => $data['telefono'],
-                'email' => $data['email'] ?? null,
-                'direccion' => $data['direccion'] ?? null,
-                'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
-            ]);
-        });
 
-        return redirect()
-            ->route('pacientes.index')
-            ->with('success', 'Paciente y usuario creados correctamente');
-    }
+    return redirect()
+        ->route('pacientes.index')
+        ->with('success', 'Paciente y usuario creados correctamente');
+}
 
     public function edit(Paciente $paciente)
     {
@@ -83,9 +160,13 @@ class PacienteController extends Controller
         $data = $request->validate([
             'nombres' => 'required|string|max:100',
             'apellidos' => 'required|string|max:100',
-            'documento' => 'required|string|max:50|unique:pacientes,documento,' . $paciente->id,
-            'telefono' => 'required|string|max:30',
-            'email' => 'nullable|email|max:150|unique:users,email,' . $paciente->user_id,
+            'documento' => 'required|digits_between:6,11|unique:pacientes,documento,' . $paciente->id,
+            'telefono' => [
+    'required',
+    'digits:10',
+    'regex:/^3[0-9]{9}$/'
+],
+            'email' => 'nullable|email|max:120|unique:users,email,' . $paciente->user_id,
             'direccion' => 'nullable|string|max:255',
             'fecha_nacimiento' => 'nullable|date',
         ]);

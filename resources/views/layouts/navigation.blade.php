@@ -71,48 +71,43 @@
 
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <!-- Botón de usuario un poco más robusto -->
-                        <button class="inline-flex items-center px-4 py-2 border {{ $dropdownBtnClass }} text-sm font-bold rounded-xl transition-all duration-200 focus:outline-none shadow-sm">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full {{ $isAdmin ? 'bg-teal-400' : 'bg-teal-500' }} shadow-[0_0_8px_rgba(45,212,191,0.6)]"></div>
-                                {{ Auth::user()->name }}
-                            </div>
-
-                            <div class="ms-3">
-                                <svg class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
+                    <div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
+                        
+                        <button @click="open = ! open" class="inline-flex items-center gap-2 px-4 py-2 border border-slate-200/80 bg-white text-sm font-bold text-slate-700 hover:text-teal-600 rounded-xl transition-all duration-200 shadow-sm focus:outline-none">
+                            <span class="flex w-2 h-2 rounded-full bg-teal-500"></span>
+                            <div>{{ Auth::user()->name }}</div>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="{'rotate-180': open}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
                         </button>
-                    </x-slot>
 
-                    <x-slot name="content">
-                        <!-- Contenedor del Dropdown -->
-                        <div class="{{ $isAdmin ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200' }} border shadow-xl rounded-lg overflow-hidden py-1">
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute right-0 z-50 mt-2 w-48 rounded-xl shadow-xl border {{ $isAdmin ? 'bg-slate-800 border-slate-700/80' : 'bg-white border-slate-100' }} py-1.5 overflow-hidden"
+                             style="display: none;">
                             
-                            <!-- Link Mi Perfil (HTML PURO) -->
                             <a href="{{ route('profile.edit') }}" 
-                               class="block w-full px-4 py-2 text-left text-sm font-semibold transition-colors duration-150 ease-in-out {{ $isAdmin ? 'text-slate-200 hover:bg-slate-700 hover:text-white' : 'text-slate-900 hover:bg-teal-50 hover:text-teal-700' }}">
+                               class="block w-full px-4 py-2.5 text-left text-sm font-semibold transition-colors duration-150 ease-in-out {{ $isAdmin ? 'text-slate-200 hover:bg-slate-700 hover:text-white' : 'text-slate-800 hover:bg-teal-50/60 hover:text-teal-700' }}">
                                 Mi Perfil
                             </a>
 
-                            <!-- Divisor -->
-                            <div class="h-px w-full {{ $isAdmin ? 'bg-slate-700' : 'bg-slate-100' }} my-1"></div>
+                            <div class="h-px w-full {{ $isAdmin ? 'bg-slate-700/60' : 'bg-slate-100' }} my-1"></div>
 
-                            <!-- Link Cerrar Sesión (HTML PURO) -->
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" 
-                                        class="block w-full px-4 py-2 text-left text-sm font-bold transition-colors duration-150 ease-in-out {{ $isAdmin ? 'text-rose-400 hover:bg-rose-900/30' : 'text-rose-600 hover:bg-rose-50' }}">
+                                        class="block w-full px-4 py-2.5 text-left text-sm font-bold transition-colors duration-150 ease-in-out {{ $isAdmin ? 'text-rose-400 hover:bg-rose-900/30' : 'text-rose-600 hover:bg-rose-50/60' }}">
                                     Cerrar Sesión
                                 </button>
                             </form>
                         </div>
-                    </x-slot>
-                </x-dropdown>
-            </div>
+                    </div>
+                </div>
 
             <!-- Hamburger (Mobile) -->
             <div class="-me-2 flex items-center sm:hidden">
