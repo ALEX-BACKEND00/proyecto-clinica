@@ -25,8 +25,19 @@ Route::get('/', function () {
 | PRIVADO
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth', 'nocache'])->group(function () {
 
-Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    });
+
+    Route::get('/perfil', function () {
+        return view('perfil');
+    });
+
+});
+
+Route::middleware(['auth', 'nocache'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------

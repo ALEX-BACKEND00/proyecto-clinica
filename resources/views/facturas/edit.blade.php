@@ -27,16 +27,29 @@
         <div class="space-y-6">
 
             <div>
-                <label class="block mb-2 font-bold text-sm text-slate-300">Paciente</label>
-                <select name="paciente_id" required
-                        class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-3.5 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/10 transition-all outline-none">
-                    @foreach($pacientes as $paciente)
-                        <option value="{{ $paciente->id }}" {{ $factura->paciente_id == $paciente->id ? 'selected' : '' }}>
-                            {{ $paciente->nombres }} {{ $paciente->apellidos }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+    <label class="block mb-2 font-bold text-sm {{ $isAdmin ? 'text-slate-200' : 'text-slate-800' }}">
+        Paciente
+    </label>
+
+    <input
+        type="hidden"
+        name="paciente_id"
+        value="{{ $factura->paciente_id }}"
+    >
+
+    <div class="w-full
+        {{ $isAdmin
+            ? 'bg-slate-900 border-slate-700 text-slate-300'
+            : 'bg-slate-100 border-slate-200 text-slate-700'
+        }}
+        border text-sm font-semibold rounded-xl px-4 py-3.5">
+
+        {{ $factura->paciente->nombres }}
+        {{ $factura->paciente->apellidos }}
+
+    </div>
+
+</div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

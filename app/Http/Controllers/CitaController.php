@@ -41,18 +41,35 @@ class CitaController extends Controller
         ->paginate(10);
 
     $puedeCrearCita = true;
+$mensajeBloqueoCita = null;
 
-    if ($user->role === 'paciente') {
+if ($user->role === 'paciente') {
 
-        $puedeCrearCita = !Cita::where('paciente_id', $paciente->id)
-            ->whereIn('estado', ['pendiente', 'confirmada'])
-            ->exists();
+    $citaActiva = Cita::where('paciente_id', $paciente->id)
+        ->whereIn('estado', [
+            'pendiente',
+            'confirmada'
+        ])
+        ->first();
+
+    $puedeCrearCita = !$citaActiva;
+
+    if($citaActiva){
+
+        $mensajeBloqueoCita =
+            'Ya tienes una cita activa para el día '
+            . $citaActiva->fecha
+            . ' a las '
+            . substr($citaActiva->hora,0,5)
+            . '. Debes completarla antes de solicitar otra.';
     }
+}
 
     return view('citas.index', compact(
         'citas',
         'fecha',
-        'puedeCrearCita'
+        'puedeCrearCita',
+        'mensajeBloqueoCita'
     ));
 }
 public function horariosDisponibles(Request $request)
@@ -111,9 +128,18 @@ public function horariosDisponibles(Request $request)
 
         $paciente = $user->paciente;
 
-        if (!$paciente) {
-            return redirect()->route('dashboard')
-                ->with('error', 'No tienes paciente asociado.');
+        $citaActiva = Cita::where('paciente_id', $paciente->id)
+            ->whereIn('estado', ['pendiente', 'confirmada'])
+            ->exists();
+
+        if($citaActiva){
+
+            return redirect()
+                ->route('citas.index')
+                ->with(
+                    'warning',
+                    'Ya tienes una cita activa. Debes completar esa atención antes de agendar una nueva.'
+                );
         }
 
         $pacientes = collect([$paciente]);
@@ -122,11 +148,14 @@ public function horariosDisponibles(Request $request)
 
     $fecha = now()->format('Y-m-d');
 
-    return view('citas.create', compact(
-        'pacientes',
-        'paciente_id',
-        'fecha'
-    ));
+    return view(
+        'citas.create',
+        compact(
+            'pacientes',
+            'paciente_id',
+            'fecha'
+        )
+    );
 }
 public function estado(Request $request, Cita $cita)
 {
@@ -194,19 +223,42 @@ public function store(Request $request)
     $user = Auth::user();
 
     if ($user->role === 'paciente') {
-        $request->merge([
-            'paciente_id' => $user->paciente->id
-        ]);
+
+    $citaActiva = Cita::where('paciente_id', $user->paciente->id)
+        ->whereIn('estado', [
+            'pendiente',
+            'confirmada'
+        ])
+        ->exists();
+
+    if($citaActiva){
+        return back()->with(
+            'error',
+            'Debes completar tu cita actual antes de solicitar otra.'
+        );
     }
 
-    // Normalizar hora antes de guardar
+    $request->merge([
+        'paciente_id' => $user->paciente->id
+    ]);
+}
+
     $hora = $request->hora ?: '08:00';
-    $request->merge(['hora' => strlen($hora) === 5 ? $hora . ':00' : $hora]);
+
+    $request->merge([
+        'hora' => strlen($hora) === 5
+            ? $hora . ':00'
+            : $hora
+    ]);
 
     Cita::create($request->all());
 
-    return redirect()->route('citas.index')
-        ->with('success', 'Cita registrada correctamente');
+    return redirect()
+        ->route('citas.index')
+        ->with(
+            'success',
+            'Cita registrada correctamente'
+        );
 }
 
     public function edit(Cita $cita)
@@ -234,8 +286,12 @@ public function store(Request $request)
             : $hora
     ]);
 
-    $cita->update($request->all());
-
+    $cita->update([
+    'fecha' => $request->fecha,
+    'hora' => $request->hora,
+    'estado' => $request->estado,
+    'motivo' => $request->motivo,
+]);
     /*
     |--------------------------------------------------------------------------
     | Flujo clínico completo

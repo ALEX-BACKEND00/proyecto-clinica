@@ -65,6 +65,10 @@
                            class="px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 {{ request()->routeIs('citas.*') ? $activeLinkClass : $inactiveLinkClass }}">
                             Citas
                         </a>
+                        <a href="{{ route('facturas.index') }}" 
+                           class="px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 {{ request()->routeIs('facturas.*') ? $activeLinkClass : $inactiveLinkClass }}">
+                            Facturación
+                        </a>
                     @endif
                 </div>
             </div>

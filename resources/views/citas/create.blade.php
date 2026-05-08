@@ -33,21 +33,50 @@
                 <label class="block mb-2 font-bold text-sm {{ $isAdmin ? 'text-slate-300' : 'text-slate-700' }}">Paciente</label>
 
                 @if($isAdmin)
-                    <select name="paciente_id" required
-                            class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-3.5 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/10 transition-all outline-none">
-                        @foreach($pacientes as $paciente)
-                            <option value="{{ $paciente->id }}" {{ ($paciente_id == $paciente->id) ? 'selected' : '' }}>
-                                {{ $paciente->nombres }} {{ $paciente->apellidos }}
-                            </option>
-                        @endforeach
-                    </select>
-                @else
-                    <input type="hidden" name="paciente_id" value="{{ $pacientes->first()->id }}">
 
-                    <div class="w-full bg-slate-100 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl px-4 py-3.5">
-                        {{ $pacientes->first()->nombres }} {{ $pacientes->first()->apellidos }}
-                    </div>
-                @endif
+    <input
+        type="hidden"
+        name="paciente_id"
+        id="paciente_id"
+        value="{{ $paciente_id }}"
+    >
+
+    <input
+        type="text"
+        id="buscarPaciente"
+        placeholder="Escriba nombre del paciente..."
+        autocomplete="off"
+        class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-3.5 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/10 outline-none"
+    >
+
+    <div
+        id="listaPacientes"
+        class="mt-2 bg-slate-900 border border-slate-700 rounded-xl hidden max-h-60 overflow-y-auto"
+    >
+
+        @foreach($pacientes as $paciente)
+
+            <div
+                class="paciente-item px-4 py-3 cursor-pointer hover:bg-slate-800 text-slate-200"
+                data-id="{{ $paciente->id }}"
+                data-nombre="{{ $paciente->nombres }} {{ $paciente->apellidos }}"
+            >
+                {{ $paciente->nombres }} {{ $paciente->apellidos }}
+            </div>
+
+        @endforeach
+
+    </div>
+
+@else
+
+    <input type="hidden" name="paciente_id" value="{{ $pacientes->first()->id }}">
+
+    <div class="w-full bg-slate-100 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl px-4 py-3.5">
+        {{ $pacientes->first()->nombres }} {{ $pacientes->first()->apellidos }}
+    </div>
+
+@endif
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -84,5 +113,55 @@
     </form>
 
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
 
+    const input = document.getElementById('buscarPaciente');
+    const hidden = document.getElementById('paciente_id');
+    const lista = document.getElementById('listaPacientes');
+
+    if(!input) return;
+
+    const items = document.querySelectorAll('.paciente-item');
+
+    input.addEventListener('focus', function(){
+        lista.classList.remove('hidden');
+    });
+
+    input.addEventListener('keyup', function(){
+
+        const texto = this.value.toLowerCase();
+
+        lista.classList.remove('hidden');
+
+        items.forEach(item => {
+
+            const nombre = item.dataset.nombre.toLowerCase();
+
+            if(nombre.includes(texto)){
+                item.style.display = 'block';
+            }else{
+                item.style.display = 'none';
+            }
+
+        });
+
+    });
+
+    items.forEach(item => {
+
+        item.addEventListener('click', function(){
+
+            input.value = this.dataset.nombre;
+
+            hidden.value = this.dataset.id;
+
+            lista.classList.add('hidden');
+
+        });
+
+    });
+
+});
+</script>
 </x-app-layout>

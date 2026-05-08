@@ -31,17 +31,30 @@
         <div class="space-y-6">
 
             {{-- PACIENTE --}}
-            <div>
-                <label class="block mb-2 font-bold text-sm {{ $isAdmin ? 'text-slate-200' : 'text-slate-800' }}">Paciente</label>
-                <select name="paciente_id" required
-                        class="w-full {{ $isAdmin ? 'bg-slate-900 border-slate-700 text-slate-100 focus:ring-teal-400/10 focus:border-teal-400' : 'bg-white border-slate-200 text-slate-900 focus:ring-teal-500/10 focus:border-teal-500' }} border text-sm rounded-xl px-4 py-3.5 focus:ring-4 transition-all outline-none">
-                    @foreach($pacientes as $paciente)
-                        <option value="{{ $paciente->id }}" {{ $cita->paciente_id == $paciente->id ? 'selected' : '' }}>
-                            {{ $paciente->nombres }} {{ $paciente->apellidos }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+<div>
+    <label class="block mb-2 font-bold text-sm {{ $isAdmin ? 'text-slate-200' : 'text-slate-800' }}">
+        Paciente
+    </label>
+
+    <input
+        type="hidden"
+        name="paciente_id"
+        value="{{ $cita->paciente_id }}"
+    >
+
+    <div class="w-full
+        {{ $isAdmin
+            ? 'bg-slate-900 border-slate-700 text-slate-300'
+            : 'bg-slate-100 border-slate-200 text-slate-700'
+        }}
+        border text-sm font-semibold rounded-xl px-4 py-3.5">
+
+        {{ $cita->paciente->nombres }}
+        {{ $cita->paciente->apellidos }}
+
+    </div>
+
+</div>
 
             {{-- FECHA Y HORA --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

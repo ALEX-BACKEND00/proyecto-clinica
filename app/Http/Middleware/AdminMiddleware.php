@@ -9,11 +9,14 @@ use Symfony\Component\HttpFoundation\Response;
 class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
-    {
-        if (auth()->check() && auth()->user()->role === 'admin') {
-            return $next($request);
-        }
+{
+    $user = $request->user();
 
-        abort(403);
+    if ($user && $user->role === 'admin') {
+        return $next($request);
     }
+
+    abort(403);
 }
+}
+
