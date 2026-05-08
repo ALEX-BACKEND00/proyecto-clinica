@@ -87,8 +87,8 @@
                             </td>
 
                             <td class="font-mono font-semibold {{ $isAdmin ? 'text-emerald-400' : 'text-emerald-600' }}">
-                                $ {{ number_format($factura->total, 2) }}
-                            </td>
+    {{ $factura->total_formateado }}
+</td>
 
                             <td>
                                 @if($factura->estado == 'pagada')

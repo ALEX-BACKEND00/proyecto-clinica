@@ -53,6 +53,8 @@ class FacturaController extends Controller
             'paciente_id' => 'required',
             'total' => 'required|numeric|min:0',
         ]);
+        $total = str_replace(['.', ','], '', $request->total);
+    $request->merge(['total' => (int) $total]);
 
         Factura::create($request->all());
 
@@ -81,6 +83,8 @@ class FacturaController extends Controller
         'paciente_id' => 'required',
         'total' => 'required|numeric|min:0',
     ]);
+    $total = str_replace(['.', ','], '', $request->total);
+    $request->merge(['total' => (int) $total]);
 
     $factura->update($request->all());
 

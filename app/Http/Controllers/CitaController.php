@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cita;
 use App\Models\Paciente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CitaController extends Controller
 {
@@ -130,18 +131,65 @@ public function horariosDisponibles(Request $request)
 public function estado(Request $request, Cita $cita)
 {
     $request->validate([
-        'estado' => 'required|in:confirmada,cancelada'
+        'estado' => 'required|in:confirmada,cancelada,completada'
     ]);
+
+    if(in_array($cita->estado, ['completada','cancelada'])){
+        
+        if($request->expectsJson()){
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta cita ya no puede modificarse.'
+            ], 403);
+        }
+
+        return back()->with(
+            'error',
+            'Esta cita ya no puede modificarse.'
+        );
+    }
 
     $cita->update([
         'estado' => $request->estado
     ]);
 
-    return redirect()->route('dashboard')
-        ->with('success', 'Estado de cita actualizado.');
+    // flujo al completar
+    if($request->estado === 'completada'){
+
+        $ruta = route('historias.create', [
+            'paciente' => $cita->paciente_id,
+            'fecha' => $cita->fecha,
+            'cita' => $cita->id
+        ]);
+
+        // agenda.js
+        if($request->expectsJson()){
+            return response()->json([
+                'success' => true,
+                'redirect' => $ruta
+            ]);
+        }
+
+        // formularios blade
+        return redirect($ruta);
+    }
+
+    // agenda.js
+    if($request->expectsJson()){
+        return response()->json([
+            'success' => true
+        ]);
+    }
+
+    // formularios blade
+    return back()->with(
+        'success',
+        'Estado actualizado.'
+    );
 }
 
-    public function store(Request $request)
+    // app/Http/Controllers/CitaController.php
+public function store(Request $request)
 {
     $user = Auth::user();
 
@@ -150,6 +198,10 @@ public function estado(Request $request, Cita $cita)
             'paciente_id' => $user->paciente->id
         ]);
     }
+
+    // Normalizar hora antes de guardar
+    $hora = $request->hora ?: '08:00';
+    $request->merge(['hora' => strlen($hora) === 5 ? $hora . ':00' : $hora]);
 
     Cita::create($request->all());
 
@@ -167,21 +219,54 @@ public function estado(Request $request, Cita $cita)
     public function update(Request $request, Cita $cita)
 {
     if(in_array($cita->estado, ['completada','cancelada'])){
-        return back()->with('error','Esta cita ya no puede editarse.');
-    }
-
-    $cita->update($request->all());
-
-    if($request->estado === 'completada'){
-        return redirect(
-            '/pacientes/' . $cita->paciente_id . '/odontograma'
+        return back()->with(
+            'error',
+            'Esta cita ya no puede editarse.'
         );
     }
 
-    return redirect()->route('citas.index')
-        ->with('success','Cita actualizada');
-}
+    // Normalizar hora
+    $hora = $request->hora ?: '08:00';
 
+    $request->merge([
+        'hora' => strlen($hora) === 5
+            ? $hora . ':00'
+            : $hora
+    ]);
+
+    $cita->update($request->all());
+
+    /*
+    |--------------------------------------------------------------------------
+    | Flujo clínico completo
+    |--------------------------------------------------------------------------
+    */
+
+    if($request->estado === 'completada'){
+
+        return redirect()->route(
+            'pacientes.odontograma',
+            [
+                'paciente' => $cita->paciente_id,
+                'cita' => $cita->id,
+                'fecha' => $cita->fecha
+            ]
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Flujo normal
+    |--------------------------------------------------------------------------
+    */
+
+    return redirect()
+        ->route('citas.index')
+        ->with(
+            'success',
+            'Cita actualizada correctamente.'
+        );
+}
     public function destroy(Cita $cita)
 {
     if(in_array($cita->estado, ['completada','cancelada'])){
@@ -233,36 +318,38 @@ public function hoy()
         ];
     }));
 }
-    public function api(Request $request)
-{
-    $inicio = $request->start;
-    $fin = $request->end;
+public function api(Request $request)
+    {
+        $inicio = $request->start;
+        $fin = $request->end;
 
-    $citas = Cita::with('paciente')
-        ->whereDate('fecha', '>=', $inicio)
-        ->whereDate('fecha', '<=', $fin)
-        ->get();
+        $citas = Cita::with('paciente')
+            ->whereDate('fecha', '>=', $inicio)
+            ->whereDate('fecha', '<=', $fin)
+            ->get();
 
-    return response()->json(
-        $citas->map(function ($cita) {
-            return [
-                'id' => $cita->id,
-                'title' => $cita->paciente->nombres . ' ' . $cita->paciente->apellidos,
-                'start' => $cita->fecha . 'T' . $cita->hora,  // ← FIX: concatenar fecha y hora
-                'allDay' => false,  // Asegurar que no es evento de día completo
-                'color' => $this->colorEstado($cita->estado),
-                'extendedProps' => [
-                    'paciente_id' => $cita->paciente_id,
-                    'hora_original' => $cita->hora,
-                    'estado' => $cita->estado,
-                    'motivo' => $cita->motivo
-                ]
-            ];
-        })
-    );
-}
+        return response()->json(
+            $citas->map(function ($cita) {
+                // Normalizar hora a H:i para el frontend
+                $horaNorm = substr($cita->hora, 0, 5);
+                return [
+                    'id' => $cita->id,
+                    'title' => $cita->paciente->nombres . ' ' . $cita->paciente->apellidos,
+                    'start' => $cita->fecha . 'T' . $cita->hora,
+                    'allDay' => false,
+                    'color' => $this->colorEstado($cita->estado),
+                    'extendedProps' => [
+                        'paciente_id' => $cita->paciente_id,
+                        'hora_original' => $horaNorm,
+                        'estado' => $cita->estado,
+                        'motivo' => $cita->motivo
+                    ]
+                ];
+            })
+        );
+    }
 
-    private function colorEstado($estado)
+    private function colorEstado(string $estado): string
 {
     return match($estado) {
         'pendiente' => '#f59e0b',
@@ -275,24 +362,28 @@ public function hoy()
 
     public function mover(Request $request)
     {
-        \Log::info('Mover cita request:', $request->all());
+        Log::info('Mover cita request:', $request->all());
 
         $request->validate([
             'id' => 'required|exists:citas,id',
             'fecha' => 'required|date',
-            'hora' => 'nullable|date_format:H:i:s'  // Formato 24h
+            'hora' => 'nullable|date_format:H:i:s,H:i'  // Formato 24h con o sin segundos
         ]);
 
         $cita = Cita::findOrFail($request->id);
 
-        \Log::info('Cita antes de update:', ['fecha' => $cita->fecha, 'hora' => $cita->hora]);
+        Log::info('Cita antes de update:', ['fecha' => $cita->fecha, 'hora' => $cita->hora]);
+
+        // Si no hay hora, usar 08:00; agregar segundos por defecto para BD
+        $hora = $request->hora ?: '08:00';
+        $horaConSegundos = strlen($hora) === 5 ? $hora . ':00' : $hora;
 
         $cita->update([
             'fecha' => $request->fecha,
-            'hora'  => $request->hora ?: date('H:i:s', strtotime($request->fecha . ' 08:00:00')), // Si no hay hora, usa 8am
+            'hora'  => $horaConSegundos,
         ]);
 
-        \Log::info('Cita después de update:', ['fecha' => $cita->fecha, 'hora' => $cita->hora]);
+        Log::info('Cita después de update:', ['fecha' => $cita->fecha, 'hora' => $cita->hora]);
 
         return response()->json([
             'success' => true,

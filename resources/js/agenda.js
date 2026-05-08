@@ -230,7 +230,7 @@ fetch('/api/citas/horarios-disponibles?fecha=' + fecha)
             enviarMovimiento(
                 info,
                 fecha,
-                horaResult.value + ':00'
+                horaResult.value
             );
 
         } else {
@@ -377,7 +377,12 @@ function enviarMovimiento(info, fecha, hora)
                 'success'
             );
 
-            window.calendar.refetchEvents();
+            if(data.redirect){
+    window.location.href = data.redirect;
+    return;
+}
+
+calendar.refetchEvents();
 
         } else {
 

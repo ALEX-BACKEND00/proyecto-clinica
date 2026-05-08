@@ -102,7 +102,7 @@
                                 </td>
 
                                 <td class="font-mono text-slate-400">
-                                    {{ $cita->hora }}
+                                    {{ $cita->horaFormateada }}
                                 </td>
 
                                 <td>

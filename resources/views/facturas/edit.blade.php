@@ -45,8 +45,10 @@
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 font-bold">
                             $
                         </div>
-                        <input type="number" step="0.01" name="total" value="{{ $factura->total }}" required placeholder="0.00"
-                               class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl pl-8 pr-4 py-3.5 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/10 transition-all outline-none font-mono">
+                        <input type="text" name="total" value="{{ number_format($factura->total, 0, ',', '.') }}" 
+       required placeholder="0"
+       class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl pl-8 pr-4 py-3.5 focus:border-teal-400 focus:ring-4 focus:ring-teal-400/10 transition-all outline-none font-mono"
+       oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                 </div>
 
